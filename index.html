@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#111415">
+  <title>Decor Colors — Quartzo Mica</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="loading">
+    <div class="loader"></div>
+    <strong>Decor Colors</strong>
+    <span>Preparando o showroom Quartzo Mica…</span>
+  </div>
+
+  <main id="scene" aria-label="Showroom 3D Decor Colors Quartzo Mica"></main>
+
+  <div id="ui">
+    <header>
+      <div class="brand" aria-label="Decor Colors Quartzo Mica">
+        <img class="brand-icon" src="assets/icons/diamond.png" alt="Diamante Decor Colors" width="32" height="32">
+        <div>
+          <b>decor<span>colors</span></b>
+          <small>QUARTZO MICA</small>
+        </div>
+      </div>
+      <div id="status" aria-live="polite">Carregando showroom…</div>
+      <button class="icon" id="helpBtn" type="button" title="Como usar" aria-label="Abrir ajuda">?</button>
+    </header>
+
+    <aside id="sidebar" aria-label="Coleção Quartzo Mica">
+      <div class="sidebar-title">
+        <span>COLEÇÃO</span>
+        <b id="selectedName">Quartzo Mica</b>
+      </div>
+      <div id="productList"></div>
+      <div class="sidebar-bottom" aria-label="Superfície de aplicação">
+        <button id="wallMode" class="active" type="button">▯ Parede</button>
+        <button id="floorMode" type="button">▱ Piso</button>
+      </div>
+    </aside>
+
+    <section id="inspector" aria-label="Detalhes do produto">
+      <button id="closeInspector" class="close" type="button" aria-label="Fechar detalhes">×</button>
+      <img id="productImage" src="" alt="Produto Decor Colors">
+      <div class="product-copy">
+        <span class="eyebrow">COLEÇÃO QUARTZO MICA</span>
+        <h1 id="productTitle">Quartzo Mica</h1>
+        <p id="productDescription">Selecione uma tonalidade para visualizar o acabamento mineral.</p>
+      </div>
+      <div class="controls">
+        <button id="applyWall" type="button">Aplicar na parede</button>
+        <button id="applyFloor" type="button">Aplicar no piso</button>
+        <button id="arProduct" type="button">Ver amostra em AR</button>
+        <button id="uploadTexture" type="button">Enviar minha textura</button>
+        <input id="textureFile" type="file" accept="image/*" hidden>
+      </div>
+    </section>
+
+    <section id="arTools" class="hidden" aria-label="Controles de realidade aumentada">
+      <div>
+        <b>AR — maquete do showroom</b>
+        <span id="arInstruction">Aponte para uma área livre do chão.</span>
+      </div>
+      <div class="ar-actions">
+        <button id="placeAR" type="button" disabled>Posicionar aqui</button>
+        <button id="centerAR" type="button" disabled>Centralizar</button>
+        <button id="scaleDown" type="button" disabled aria-label="Diminuir maquete">−</button>
+        <button id="scaleUp" type="button" disabled aria-label="Aumentar maquete">+</button>
+        <button id="resetAR" type="button" disabled>Reposicionar</button>
+        <button id="exitAR" type="button">Sair do AR</button>
+      </div>
+    </section>
+
+    <nav id="bottomNav" aria-label="Modos do showroom">
+      <button id="enterBtn" type="button">Entrar</button>
+      <button id="normalBtn" class="active" type="button">◉ Normal</button>
+      <button id="tourBtn" type="button">✦ Tour</button>
+      <button id="arBtn" type="button">◌ AR</button>
+      <button id="vrBtn" type="button">◍ VR</button>
+      <button id="captureBtn" type="button">⌑ Foto</button>
+    </nav>
+
+    <div id="teleportHint">Clique ou toque no piso para se mover · Selecione uma tonalidade para testar o efeito</div>
+    <div id="crosshair" aria-hidden="true"></div>
+  </div>
+
+  <section id="welcome" class="modal open" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
+    <div class="welcome-card">
+      <img class="welcome-icon" src="assets/icons/diamond.png" alt="Diamante Quartzo Mica" width="68" height="68">
+      <p class="eyebrow">DECOR COLORS APRESENTA</p>
+      <h1 id="welcomeTitle">Quartzo <em>Mica</em></h1>
+      <p>Explore o showroom Decor Colors e visualize os efeitos minerais da linha Quartzo Mica em <b>paredes</b> e <b>pisos</b>.</p>
+      <div class="welcome-actions">
+        <button id="startBtn" type="button">Explorar showroom</button>
+        <button id="quickTourBtn" class="secondary" type="button">Iniciar tour guiado</button>
+      </div>
+      <small>PC: clique na cena, use WASD/setas e mouse. Celular: arraste para olhar e toque no piso para mover.</small>
+    </div>
+  </section>
+
+  <section id="help" class="modal" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+    <div class="help-card">
+      <button class="close" id="closeHelp" type="button" aria-label="Fechar ajuda">×</button>
+      <h2 id="helpTitle">Como explorar</h2>
+      <ul>
+        <li><b>Computador:</b> clique na cena, use WASD/setas para andar e mouse para olhar.</li>
+        <li><b>Celular:</b> arraste para olhar e toque no piso para se movimentar.</li>
+        <li><b>Produtos:</b> clique em um pedestal ou escolha uma opção no menu da coleção.</li>
+        <li><b>Parede e piso:</b> aplique cada cor ou textura em tempo real.</li>
+        <li><b>AR:</b> aponte para o chão, aguarde a mira estabilizar e confirme em “Posicionar aqui”.</li>
+      </ul>
+    </div>
+  </section>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+    }
+  }
+  </script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

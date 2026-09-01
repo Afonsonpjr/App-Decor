@@ -1,0 +1,60 @@
+{
+  "brand": "Decor Colors",
+  "line": "Quartzo Mica",
+  "whatsapp": "",
+  "products": [
+    {
+      "id": "topazio",
+      "name": "Topázio",
+      "hex": "#9A7350",
+      "mockup": "assets/mockups/topazio.jpg",
+      "texture": "assets/textures/topazio.jpg",
+      "description": "Efeito mineral Quartzo Mica em tonalidade quente, indicado para composições sofisticadas em parede e piso."
+    },
+    {
+      "id": "off-white",
+      "name": "Off-White",
+      "hex": "#C8C0B5",
+      "mockup": "assets/mockups/off-white.jpg",
+      "texture": "assets/textures/off-white.jpg",
+      "description": "Tonalidade clara e versátil para ampliar visualmente ambientes e destacar a textura mineral."
+    },
+    {
+      "id": "bianco",
+      "name": "Bianco",
+      "hex": "#D1CDCA",
+      "mockup": "assets/mockups/bianco.jpg",
+      "texture": "assets/textures/bianco.jpg",
+      "description": "Acabamento mineral claro, elegante e contemporâneo para projetos de parede e piso."
+    },
+    {
+      "id": "olho-de-tigre",
+      "name": "Olho de Tigre",
+      "hex": "#8E6746",
+      "mockup": "assets/mockups/olho-de-tigre.jpg",
+      "texture": "assets/textures/olho-de-tigre.jpg",
+      "description": "Tonalidade terrosa profunda, inspirada em minerais naturais e indicada para ambientes marcantes."
+    },
+    {
+      "id": "onix",
+      "name": "Ônix",
+      "hex": "#252526",
+      "mockup": "assets/mockups/onix.jpg",
+      "texture": "assets/textures/onix.jpg",
+      "description": "Acabamento escuro e sofisticado para contrastes, painéis de destaque e pisos contemporâneos."
+    },
+    {
+      "id": "jaspe",
+      "name": "Jaspe",
+      "hex": "#806147",
+      "mockup": "assets/mockups/jaspe.jpg",
+      "texture": "assets/textures/jaspe.jpg",
+      "description": "Efeito mineral em tom orgânico, ideal para combinações acolhedoras e naturais."
+    }
+  ],
+  "referenceTextures": {
+    "mineral": "assets/textures/minerio.jpg",
+    "floor": "assets/textures/quartzo-mica-piso.jpg",
+    "wall": "assets/textures/quartzo-mica-parede.jpg"
+  }
+}

@@ -1,0 +1,14 @@
+TEXTURAS
+
+Nomes esperados pelo catalogo:
+minerio.jpg
+topazio.jpg
+off-white.jpg
+bianco.jpg
+olho-de-tigre.jpg
+onix.jpg
+jaspe.jpg
+quartzo-mica-piso.jpg
+quartzo-mica-parede.jpg
+
+Para repetir em parede ou piso, prefira imagens seamless/tileable.

@@ -1,0 +1,10 @@
+UPLOADS - ARQUIVOS SUBSTITUIVEIS
+
+models: coloque modelos 3D GLB aqui.
+usdz: coloque versoes USDZ para iPhone e iPad aqui.
+textures: coloque texturas novas de parede e piso aqui.
+mockups: coloque imagens de novos produtos aqui.
+cliente: imagens enviadas temporariamente por clientes.
+
+Use nomes minusculos, sem espacos e sem acentos.
+Exemplo: quartzo-mica.glb, topazio.jpg, onix.usdz

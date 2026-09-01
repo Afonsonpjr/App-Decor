@@ -1,0 +1,9 @@
+DECOR COLORS - QUARTZO MICA
+
+Esta pasta contem os arquivos efetivamente usados pelo showroom.
+
+mockups: imagens de apresentacao dos produtos.
+textures: imagens aplicadas como textura em parede e piso.
+models: modelos GLB otimizados que serao carregados pelo site.
+icons: icones e logo da interface.
+audio: sons ambiente opcionais.
