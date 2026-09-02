@@ -4,12 +4,30 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#111318">
-  <title>App Decor — Showroom 3D</title>
+  <title>Decor Colors — Acesso</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <section id="entry-screen" class="entry-screen" aria-labelledby="entry-title">
+    <div class="entry-card">
+      <div class="brand-mark" aria-hidden="true">◆</div>
+      <p class="eyebrow">DECOR COLORS</p>
+      <h1 id="entry-title">Entre no showroom</h1>
+      <p class="entry-copy">Informe seus dados para acessar a experiência de decoração em 3D.</p>
+      <form id="entry-form" novalidate>
+        <label for="visitor-name">Nome</label>
+        <input id="visitor-name" name="name" type="text" autocomplete="name" placeholder="Digite seu nome" maxlength="80" required>
+        <label for="visitor-number">Número</label>
+        <input id="visitor-number" name="number" type="tel" inputmode="numeric" autocomplete="tel" placeholder="Digite seu número" maxlength="30" required>
+        <p id="entry-error" class="form-error" role="alert" hidden></p>
+        <button class="primary-button" type="submit">Entrar no showroom</button>
+      </form>
+      <p class="privacy-note">Seus dados ficam somente nesta sessão do navegador.</p>
+    </div>
+  </section>
+
   <div id="loading" role="status" aria-live="polite">Carregando showroom…</div>
-  <header class="topbar"><h1>Decor Colors</h1><p id="status">Preparando ambiente…</p></header>
+  <header class="topbar"><h1>Decor Colors</h1><p id="status">Preparando ambiente…</p><button id="logout" class="logout-button" type="button">Sair</button></header>
   <main id="app" aria-label="Showroom 3D">
     <canvas id="scene" aria-label="Cena 3D do showroom"></canvas>
     <aside class="help"><strong>Controles</strong><span>Arraste para olhar · Scroll para aproximar</span><span>AR/VR: use um dispositivo compatível</span></aside>

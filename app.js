@@ -1,144 +1,125 @@
-/* App-Decor — WebXR-safe runtime */
+/* App-Decor — entrada do visitante + showroom WebXR seguro */
 (function () {
   'use strict';
 
   const $ = (selector) => document.querySelector(selector);
+  const entryScreen = $('#entry-screen');
+  const entryForm = $('#entry-form');
+  const entryName = $('#visitor-name');
+  const entryNumber = $('#visitor-number');
+  const entryError = $('#entry-error');
   const loading = $('#loading');
-  const status = $('#status') || $('#xr-status');
-  const setStatus = (message) => { if (status) status.textContent = message; };
-  const finishLoading = () => { if (loading) { loading.classList.add('hidden'); loading.setAttribute('aria-hidden', 'true'); } };
+  const status = $('#status');
+  const logout = $('#logout');
+  const SESSION_KEY = 'app-decor-visitor';
+  let scene, camera, renderer, controls, clock;
 
-  let scene, camera, renderer, controls;
-  let xrButtons = [];
-  let clock;
-
-  function assetUrl(name) {
-    return `assets/models/${encodeURIComponent(name)}`;
+  function setStatus(message) { if (status) status.textContent = message; }
+  function finishLoading() { if (loading) { loading.classList.add('hidden'); loading.setAttribute('aria-hidden', 'true'); } }
+  function showEntry(show) {
+    if (!entryScreen) return;
+    entryScreen.hidden = !show;
+    document.body.classList.toggle('entry-active', show);
+    if (show && entryName) setTimeout(() => entryName.focus(), 0);
+  }
+  function getVisitor() {
+    try { return JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null'); } catch (_) { return null; }
+  }
+  function setEntryError(message) {
+    if (!entryError) return;
+    entryError.textContent = message;
+    entryError.hidden = !message;
+  }
+  function enterShowroom(event) {
+    event.preventDefault();
+    const name = (entryName?.value || '').trim();
+    const number = (entryNumber?.value || '').trim();
+    if (name.length < 2) return setEntryError('Digite um nome válido.');
+    if (number.length < 3) return setEntryError('Digite um número válido.');
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ name, number, enteredAt: new Date().toISOString() }));
+    setEntryError('');
+    showEntry(false);
+    init();
+  }
+  function leaveShowroom() {
+    sessionStorage.removeItem(SESSION_KEY);
+    if (entryForm) entryForm.reset();
+    showEntry(true);
+    setStatus('Informe seus dados para entrar.');
   }
 
-  function makeMaterial(textureName, fallbackColor) {
-    const material = new THREE.MeshStandardMaterial({ color: fallbackColor, roughness: 0.78, metalness: 0.04 });
-    if (!textureName) return material;
-    const loader = new THREE.TextureLoader();
-    loader.load(assetUrl(textureName), (texture) => {
+  function assetUrl(name) { return `assets/models/${encodeURIComponent(name)}`; }
+  function material(textureName, fallbackColor) {
+    const mat = new THREE.MeshStandardMaterial({ color: fallbackColor, roughness: .78, metalness: .04 });
+    if (!textureName) return mat;
+    new THREE.TextureLoader().load(assetUrl(textureName), (texture) => {
       texture.colorSpace = THREE.SRGBColorSpace;
       texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
       texture.repeat.set(2, 2);
-      material.map = texture;
-      material.needsUpdate = true;
-    }, undefined, () => setStatus('Modo visual ativo; algumas imagens não foram encontradas.'));
-    return material;
+      mat.map = texture;
+      mat.needsUpdate = true;
+    }, undefined, () => {});
+    return mat;
   }
-
   function addRoom() {
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(18, 18), makeMaterial('quartzo-mica-piso.jpg', 0x777777));
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(18, 18), material('quartzo-mica-piso.jpg', 0x777777));
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
-
-    const back = new THREE.Mesh(new THREE.PlaneGeometry(18, 8), makeMaterial('quartzo-mica-parede.jpg', 0xe6e1d8));
-    back.position.set(0, 4, -4);
-    scene.add(back);
-
-    const side = new THREE.Mesh(new THREE.PlaneGeometry(18, 8), makeMaterial('quartzo-mica-parede.jpg', 0xd9d2c8));
-    side.rotation.y = Math.PI / 2;
-    side.position.set(-9, 4, 5);
-    scene.add(side);
-
-    const shelf = new THREE.Mesh(new THREE.BoxGeometry(7, 0.25, 1.5), new THREE.MeshStandardMaterial({ color: 0x292929, roughness: 0.55 }));
+    const wall = new THREE.Mesh(new THREE.PlaneGeometry(18, 8), material('quartzo-mica-parede.jpg', 0xe6e1d8));
+    wall.position.set(0, 4, -4);
+    scene.add(wall);
+    const shelf = new THREE.Mesh(new THREE.BoxGeometry(7, .25, 1.5), new THREE.MeshStandardMaterial({ color: 0x292929, roughness: .55 }));
     shelf.position.set(0, 2.2, -2.8);
     scene.add(shelf);
   }
-
   function addProducts() {
-    const names = [
-      ['Minerio', 'minerio.png', 0xb45b42],
-      ['Topazio', 'topazio.png', 0xd99b35],
-      ['Jaspe', 'jaspe.png', 0x8d5a45],
-      ['Onix', 'onix.png', 0x252525]
-    ];
-    names.forEach(([label, file, color], index) => {
-      const group = new THREE.Group();
-      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.48, 1.15, 32), makeMaterial(file, color));
-      body.position.y = 2.95;
-      group.add(body);
-      group.position.x = (index - 1.5) * 1.45;
-      group.position.z = -2.75;
-      group.userData.label = label;
-      scene.add(group);
+    [['Minerio', 'minerio.png', 0xb45b42], ['Topazio', 'topazio.png', 0xd99b35], ['Jaspe', 'jaspe.png', 0x8d5a45], ['Onix', 'onix.png', 0x252525]].forEach(([label, file, color], index) => {
+      const product = new THREE.Mesh(new THREE.CylinderGeometry(.42, .48, 1.15, 32), material(file, color));
+      product.position.set((index - 1.5) * 1.45, 2.95, -2.75);
+      product.userData.label = label;
+      scene.add(product);
     });
   }
-
   function setupXR() {
-    if (!renderer.xr) return;
-    const supportsXR = 'xr' in navigator;
-    const addButton = (factory, mode, options) => {
-      let button;
-      try { button = factory(renderer, options); }
-      catch (error) { button = null; }
-      if (button) {
-        button.dataset.mode = mode;
-        button.addEventListener('click', () => setStatus(`Solicitando modo ${mode}…`));
-        document.body.appendChild(button);
-        xrButtons.push(button);
-      }
-    };
-    if (!supportsXR) {
-      setStatus('AR/VR requerem um dispositivo e navegador compatíveis.');
-      return;
-    }
-    if (window.VRButton) addButton(window.VRButton.createButton, 'VR', { requiredFeatures: ['local-floor'] });
-    if (window.ARButton) addButton(window.ARButton.createButton, 'AR', { requiredFeatures: ['hit-test'], optionalFeatures: ['dom-overlay'], domOverlay: { root: document.body } });
-    if (!window.VRButton && !window.ARButton) setStatus('AR/VR indisponíveis nesta versão do navegador.');
+    if (!renderer?.xr || !('xr' in navigator)) { setStatus('Showroom pronto. AR/VR requerem dispositivo compatível.'); return; }
+    try {
+      if (window.VRButton) document.body.appendChild(window.VRButton.createButton(renderer, { requiredFeatures: ['local-floor'] }));
+      if (window.ARButton) document.body.appendChild(window.ARButton.createButton(renderer, { requiredFeatures: ['hit-test'], optionalFeatures: ['dom-overlay'], domOverlay: { root: document.body } }));
+    } catch (_) { setStatus('Showroom pronto. AR/VR não disponíveis neste dispositivo.'); }
   }
-
   function init() {
+    if (!getVisitor()) { showEntry(true); finishLoading(); return; }
+    if (renderer) { showEntry(false); return; }
     try {
       if (!window.THREE) throw new Error('Three.js não carregado');
-      const canvas = $('#scene') || $('#canvas') || document.querySelector('canvas');
       scene = new THREE.Scene();
       scene.background = new THREE.Color(0x111318);
-      camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.05, 100);
+      camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, .05, 100);
       camera.position.set(0, 2.2, 8);
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, canvas: canvas || undefined });
+      renderer = new THREE.WebGLRenderer({ antialias: true, canvas: $('#scene') || undefined });
       renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
       renderer.setSize(innerWidth, innerHeight);
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.xr.enabled = true;
-      document.body.appendChild(renderer.domElement);
-
       scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 2.2));
-      const key = new THREE.DirectionalLight(0xffffff, 2.2);
-      key.position.set(4, 8, 6);
-      scene.add(key);
+      const light = new THREE.DirectionalLight(0xffffff, 2.2);
+      light.position.set(4, 8, 6);
+      scene.add(light);
       addRoom();
       addProducts();
-
-      if (window.OrbitControls) {
-        controls = new window.OrbitControls(camera, renderer.domElement);
-        controls.target.set(0, 2.2, -2);
-        controls.enableDamping = true;
-      }
+      if (window.OrbitControls) { controls = new window.OrbitControls(camera, renderer.domElement); controls.target.set(0, 2.2, -2); controls.enableDamping = true; }
       setupXR();
       clock = new THREE.Clock();
-      renderer.setAnimationLoop(() => {
-        clock.getDelta();
-        if (controls && !renderer.xr.isPresenting) controls.update();
-        renderer.render(scene, camera);
-      });
-      addEventListener('resize', () => {
-        camera.aspect = innerWidth / innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(innerWidth, innerHeight);
-      });
+      renderer.setAnimationLoop(() => { clock.getDelta(); if (controls && !renderer.xr.isPresenting) controls.update(); renderer.render(scene, camera); });
+      addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
       finishLoading();
-      setStatus('Showroom pronto. Se o dispositivo suportar WebXR, os botões AR/VR estarão disponíveis.');
-    } catch (error) {
-      console.error('[App-Decor]', error);
-      finishLoading();
-      setStatus('Não foi possível iniciar o showroom. Atualize a página ou verifique o console.');
-    }
+      const visitor = getVisitor();
+      setStatus(`Olá, ${visitor.name}! Showroom pronto.`);
+    } catch (error) { console.error('[App-Decor]', error); finishLoading(); setStatus('Não foi possível iniciar o showroom.'); }
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
-  else init();
+  entryForm?.addEventListener('submit', enterShowroom);
+  logout?.addEventListener('click', leaveShowroom);
+  showEntry(!getVisitor());
+  if (getVisitor()) init(); else finishLoading();
 })();
