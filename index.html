@@ -5,72 +5,67 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>Decor Colors - Showroom</title>
 <style>
-    html, body { margin: 0; padding: 0; overflow: hidden; background: #1a1a1a; font-family: Arial, sans-serif; }
-    canvas { display: block; touch-action: none; }
-    #crosshair {
-        position: fixed; top: 50%; left: 50%; width: 14px; height: 14px;
-        transform: translate(-50%, -50%); pointer-events: none; z-index: 999;
-    }
-    #crosshair::before, #crosshair::after { content: ''; position: absolute; background: rgba(255, 255, 255, 0.85); }
-    #crosshair::before { left: 50%; top: 0; width: 2px; height: 100%; transform: translateX(-50%); }
-    #crosshair::after { top: 50%; left: 0; height: 2px; width: 100%; transform: translateY(-50%); }
-    @keyframes fadeInOut {
-        0%   { opacity: 0; transform: translateX(-50%) translateY(-8px); }
-        12%  { opacity: 1; transform: translateX(-50%) translateY(0); }
-        80%  { opacity: 1; transform: translateX(-50%) translateY(0); }
-        100% { opacity: 0; transform: translateX(-50%) translateY(0); }
-    }
-    .notification {
-        position: fixed; top: 80px; left: 50%; color: white; padding: 12px 24px;
-        border-radius: 8px; font-size: 14px; z-index: 10000;
-        animation: fadeInOut 2s ease-in-out forwards;
-    }
-    #joystick-zone { touch-action: none; }
-</style>
-
-<!-- CORREÇÃO CRÍTICA: sem este import map, o OrbitControls.js do CDN
-     importa 'three' (bare specifier) e o navegador falha com
-     "Failed to resolve module specifier 'three'" -->
-<script type="importmap">
-{
-    "imports": {
-        "three": "https://unpkg.com/three@0.157.0/build/three.module.js",
-        "three/addons/": "https://unpkg.com/three@0.157.0/examples/jsm/"
-    }
+html, body { margin: 0; padding: 0; overflow: hidden; background: #1a1a1a; font-family: Arial, sans-serif; }
+canvas { display: block; touch-action: none; }
+#crosshair {
+  position: fixed; top: 50%; left: 50%; width: 14px; height: 14px;
+  transform: translate(-50%, -50%); pointer-events: none; z-index: 999;
 }
-</script>
+#crosshair::before, #crosshair::after { content: ''; position: absolute; background: rgba(255, 255, 255, 0.85); }
+#crosshair::before { left: 50%; top: 0; width: 2px; height: 100%; transform: translateX(-50%); }
+#crosshair::after { top: 50%; left: 0; height: 2px; width: 100%; transform: translateY(-50%); }
+@keyframes fadeInOut {
+  0%   { opacity: 0; transform: translateX(-50%) translateY(-8px); }
+  12%  { opacity: 1; transform: translateX(-50%) translateY(0); }
+  80%  { opacity: 1; transform: translateX(-50%) translateY(0); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(0); }
+}
+.notification {
+  position: fixed; top: 80px; left: 50%; color: white; padding: 12px 24px;
+  border-radius: 8px; font-size: 14px; z-index: 10000;
+  animation: fadeInOut 2s ease-in-out forwards;
+}
+#joystick-zone { touch-action: none; }
+#xr-buttons { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; z-index: 1000; }
+#xr-buttons button { padding: 12px 20px; border: none; border-radius: 8px; font-family: Arial, sans-serif; font-size: 14px; cursor: pointer; color: white; background: rgba(90,60,180,0.9); }
+#xr-buttons button:disabled { opacity: 0.4; cursor: not-allowed; }
+</style>
+<script type="importmap">{
+  "imports": {
+    "three": "https://unpkg.com/three@0.157.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.157.0/examples/jsm/"
+  }
+}</script>
 </head>
 <body>
 <div id="crosshair"></div>
-
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { ARButton } from 'three/addons/webxr/ARButton.js';
+import { VRButton } from 'three/addons/webxr/VRButton.js';
 
 /* ---------- Cena, câmera, renderer ---------- */
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x1a1a1a);
-
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(0, 1.6, 3);
-
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.xr.enabled = true;
 document.body.appendChild(renderer.domElement);
 
 /* ---------- Luzes ---------- */
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
 scene.add(ambientLight);
-
 const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
 directionalLight.position.set(5, 10, 5);
 directionalLight.castShadow = true;
 directionalLight.shadow.mapSize.set(2048, 2048);
-// CORREÇÃO: a shadow camera padrão (±5) não cobria a sala de 20x20
 directionalLight.shadow.camera.left = -12;
 directionalLight.shadow.camera.right = 12;
 directionalLight.shadow.camera.top = 12;
@@ -87,430 +82,427 @@ controls.dampingFactor = 0.05;
 controls.minDistance = 0.5;
 controls.maxDistance = 10;
 controls.maxPolarAngle = Math.PI / 2.1;
-// CORREÇÃO: botão direito agora é teleporte/captura; pan conflitava com isso
 controls.enablePan = false;
 controls.target.set(0, 1, 0);
 
 /* ---------- Estado compartilhado ---------- */
 const ROOM_LIMIT = 9.5;
-
 const moveState = { forward: false, backward: false, left: false, right: false, velocity: 0, maxVelocity: 0.08, acceleration: 0.008, friction: 0.92, isMoving: false };
 const keys = {};
-
 const virtualJoystick = { active: false, startX: 0, startY: 0, currentX: 0, currentY: 0, angle: 0, distance: 0, intensity: 0, maxDistance: 60, zoneRadius: 80 };
 let joystickZone = null, joystickKnob = null;
 const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-
 let isTeleporting = false;
 let teleportTarget = null;
-
-let yaw = 0, pitch = 0; // usados apenas com o mouse capturado
-
+let yaw = 0, pitch = 0;
 let currentTourIndex = 0;
 let isTouring = false;
 let tourInterval = null;
+let isPresentingXR = false;
 
 /* ---------- Texturas, materiais e geometrias ---------- */
 const textureLoader = new THREE.TextureLoader();
-
 function loadTextureFlexible(basePath, callback) {
-    const extensions = ['.jpg', '.jpeg', '.png', '.webp', '.bmp'];
-    let loaded = false;
-    function tryExtension(index) {
-        if (index >= extensions.length || loaded) { if (!loaded) callback(null); return; }
-        const path = basePath + extensions[index];
-        textureLoader.load(path, (texture) => {
-            loaded = true; texture.colorSpace = THREE.SRGBColorSpace; texture.wrapS = THREE.RepeatWrapping; texture.wrapT = THREE.RepeatWrapping;
-            callback(texture);
-        }, undefined, () => { tryExtension(index + 1); });
-    }
-    tryExtension(0);
+  const extensions = ['.jpg', '.jpeg', '.png', '.webp', '.bmp'];
+  let loaded = false;
+  function tryExtension(index) {
+    if (index >= extensions.length || loaded) { if (!loaded) callback(null); return; }
+    const path = basePath + extensions[index];
+    textureLoader.load(path, (texture) => {
+      loaded = true; texture.colorSpace = THREE.SRGBColorSpace; texture.wrapS = THREE.RepeatWrapping; texture.wrapT = THREE.RepeatWrapping;
+      callback(texture);
+    }, undefined, () => { tryExtension(index + 1); });
+  }
+  tryExtension(0);
 }
-
 const wallMaterial = new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 0.7, metalness: 0.1 });
 const panelMaterial = new THREE.MeshStandardMaterial({ color: 0xe0e0e0, roughness: 0.6, metalness: 0.15 });
 const demoFloorMaterial = new THREE.MeshStandardMaterial({ color: 0x3a3a3a, roughness: 0.5, metalness: 0.2 });
-
 loadTextureFlexible('assets/textures/minerio', (texture) => { if (texture) { texture.repeat.set(4, 4); demoFloorMaterial.map = texture; demoFloorMaterial.needsUpdate = true; } });
 loadTextureFlexible('assets/textures/quartzo-mica-piso', (texture) => { if (texture) { texture.repeat.set(3, 3); wallMaterial.map = texture; wallMaterial.needsUpdate = true; } });
-
 const floorGeometry = new THREE.PlaneGeometry(20, 20);
 const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.8, metalness: 0.1 });
 const floorMesh = new THREE.Mesh(floorGeometry, floorMaterial);
 floorMesh.rotation.x = -Math.PI / 2; floorMesh.receiveShadow = true; scene.add(floorMesh);
-
 const ceilingGeometry = new THREE.PlaneGeometry(20, 20);
 const ceilingMaterial = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9, metalness: 0.05 });
 const ceilingMesh = new THREE.Mesh(ceilingGeometry, ceilingMaterial);
 ceilingMesh.rotation.x = Math.PI / 2; ceilingMesh.position.y = 4; ceilingMesh.receiveShadow = true; scene.add(ceilingMesh);
-
 const wallGeometry = new THREE.PlaneGeometry(10, 4);
 const wallMesh = new THREE.Mesh(wallGeometry, wallMaterial);
 wallMesh.position.set(0, 2, -5); wallMesh.receiveShadow = true; scene.add(wallMesh);
-
 const panelGeometry = new THREE.BoxGeometry(3, 2, 0.2);
 const panelMesh = new THREE.Mesh(panelGeometry, panelMaterial);
 panelMesh.position.set(0, 1.5, -4.8); panelMesh.castShadow = true; panelMesh.receiveShadow = true; scene.add(panelMesh);
-
 const demoFloorGeometry = new THREE.PlaneGeometry(4, 4);
 const demoFloorMesh = new THREE.Mesh(demoFloorGeometry, demoFloorMaterial);
 demoFloorMesh.rotation.x = -Math.PI / 2; demoFloorMesh.position.set(0, 0.01, -3); demoFloorMesh.receiveShadow = true; scene.add(demoFloorMesh);
 
 /* ---------- Notificações ---------- */
 function showNotification(message, type = 'info') {
-    const notification = document.createElement('div');
-    notification.className = 'notification'; // CORREÇÃO: animação agora existe no CSS
-    notification.style.background = type === 'error' ? '#e74c3c' : type === 'success' ? '#27ae60' : '#3498db';
-    notification.textContent = message;
-    document.body.appendChild(notification);
-    setTimeout(() => notification.remove(), 2000);
+  const notification = document.createElement('div');
+  notification.className = 'notification';
+  notification.style.background = type === 'error' ? '#e74c3c' : type === 'success' ? '#27ae60' : '#3498db';
+  notification.textContent = message;
+  document.body.appendChild(notification);
+  setTimeout(() => notification.remove(), 2000);
 }
 
 /* ---------- Tour automático ---------- */
 const tourPoints = [
-    { position: [0, 1.6, 3], lookAt: [0, 1, -3], label: 'Entrada' },
-    { position: [-2, 1.6, 2], lookAt: [-2, 1, -3], label: 'Esquerda' },
-    { position: [2, 1.6, 2], lookAt: [2, 1, -3], label: 'Direita' },
-    { position: [0, 1.6, -2], lookAt: [0, 1, -4], label: 'Fundo' }
+  { position: [0, 1.6, 3], lookAt: [0, 1, -3], label: 'Entrada' },
+  { position: [-2, 1.6, 2], lookAt: [-2, 1, -3], label: 'Esquerda' },
+  { position: [2, 1.6, 2], lookAt: [2, 1, -3], label: 'Direita' },
+  { position: [0, 1.6, -2], lookAt: [0, 1, -4], label: 'Fundo' }
 ];
-
 function stopTourIfActive() { if (isTouring) stopTour(); }
-
 function startTour() {
-    if (isTouring) return;
-    isTouring = true; currentTourIndex = 0; moveToTourPoint(0);
-    tourInterval = setInterval(() => { currentTourIndex = (currentTourIndex + 1) % tourPoints.length; moveToTourPoint(currentTourIndex); }, 4000);
-    showNotification('Tour iniciado!', 'success');
+  if (isTouring) return;
+  isTouring = true; currentTourIndex = 0; moveToTourPoint(0);
+  tourInterval = setInterval(() => { currentTourIndex = (currentTourIndex + 1) % tourPoints.length; moveToTourPoint(currentTourIndex); }, 4000);
+  showNotification('Tour iniciado!', 'success');
 }
-
 function stopTour() {
-    if (!isTouring) return;
-    isTouring = false; clearInterval(tourInterval); tourInterval = null;
-    showNotification('Tour parado', 'info');
+  if (!isTouring) return;
+  isTouring = false; clearInterval(tourInterval); tourInterval = null;
+  showNotification('Tour parado', 'info');
 }
-
 function moveToTourPoint(index) {
-    const point = tourPoints[index];
-    const targetPos = new THREE.Vector3(...point.position);
-    const targetLook = new THREE.Vector3(...point.lookAt);
-    const startPos = camera.position.clone();
-    const startLook = controls.target.clone();
-    let progress = 0;
-    const animateTour = () => {
-        if (!isTouring) return;
-        progress += 0.02;
-        if (progress >= 1) { camera.position.copy(targetPos); controls.target.copy(targetLook); controls.update(); return; }
-        camera.position.lerpVectors(startPos, targetPos, progress);
-        controls.target.lerpVectors(startLook, targetLook, progress);
-        controls.update();
-        requestAnimationFrame(animateTour);
-    };
-    animateTour();
+  const point = tourPoints[index];
+  const targetPos = new THREE.Vector3(...point.position);
+  const targetLook = new THREE.Vector3(...point.lookAt);
+  const startPos = camera.position.clone();
+  const startLook = controls.target.clone();
+  let progress = 0;
+  const animateTour = () => {
+    if (!isTouring) return;
+    progress += 0.02;
+    if (progress >= 1) { camera.position.copy(targetPos); controls.target.copy(targetLook); controls.update(); return; }
+    camera.position.lerpVectors(startPos, targetPos, progress);
+    controls.target.lerpVectors(startLook, targetLook, progress);
+    controls.update();
+    requestAnimationFrame(animateTour);
+  };
+  animateTour();
 }
 
 /* ---------- Entrada: teclado ---------- */
 function resetAllInput() {
-    Object.keys(keys).forEach(key => { keys[key] = false; });
-    moveState.forward = false; moveState.backward = false; moveState.left = false; moveState.right = false;
-    moveState.velocity = 0; moveState.isMoving = false;
-    virtualJoystick.active = false; virtualJoystick.distance = 0; virtualJoystick.intensity = 0;
-    updateVirtualJoystickVisual();
-    isTeleporting = false; teleportTarget = null;
+  Object.keys(keys).forEach(key => { keys[key] = false; });
+  moveState.forward = false; moveState.backward = false; moveState.left = false; moveState.right = false;
+  moveState.velocity = 0; moveState.isMoving = false;
+  virtualJoystick.active = false; virtualJoystick.distance = 0; virtualJoystick.intensity = 0;
+  updateVirtualJoystickVisual();
+  isTeleporting = false; teleportTarget = null;
 }
-
 window.addEventListener('blur', () => { resetAllInput(); });
-
 document.addEventListener('keydown', (e) => {
-    keys[e.code] = true;
-    if (moveState.forward || moveState.backward) stopTourIfActive();
-    updateMoveState();
+  keys[e.code] = true;
+  if (moveState.forward || moveState.backward) stopTourIfActive();
+  updateMoveState();
 });
 document.addEventListener('keyup', (e) => { keys[e.code] = false; updateMoveState(); });
-
 function updateMoveState() {
-    moveState.forward = keys['KeyW'] || keys['ArrowUp'];
-    moveState.backward = keys['KeyS'] || keys['ArrowDown'];
-    moveState.left = keys['KeyA'] || keys['ArrowLeft'];
-    moveState.right = keys['KeyD'] || keys['ArrowRight'];
-    moveState.isMoving = moveState.forward || moveState.backward || moveState.left || moveState.right;
-    if (moveState.isMoving) stopTourIfActive();
+  moveState.forward = keys['KeyW'] || keys['ArrowUp'];
+  moveState.backward = keys['KeyS'] || keys['ArrowDown'];
+  moveState.left = keys['KeyA'] || keys['ArrowLeft'];
+  moveState.right = keys['KeyD'] || keys['ArrowRight'];
+  moveState.isMoving = moveState.forward || moveState.backward || moveState.left || moveState.right;
+  if (moveState.isMoving) stopTourIfActive();
 }
-
 function clampToRoom(v) {
-    v.x = Math.max(-ROOM_LIMIT, Math.min(ROOM_LIMIT, v.x));
-    v.z = Math.max(-ROOM_LIMIT, Math.min(ROOM_LIMIT, v.z));
+  v.x = Math.max(-ROOM_LIMIT, Math.min(ROOM_LIMIT, v.x));
+  v.z = Math.max(-ROOM_LIMIT, Math.min(ROOM_LIMIT, v.z));
 }
-
 function updateMovement() {
-    if (virtualJoystick.active && moveState.isMoving) {
-        // CORREÇÃO: joystick agora com intensidade proporcional ao deslize
-        moveState.velocity = virtualJoystick.intensity * moveState.maxVelocity;
-    } else if (!moveState.isMoving) {
-        moveState.velocity *= moveState.friction;
-        if (Math.abs(moveState.velocity) < 0.001) moveState.velocity = 0;
-    } else if (moveState.velocity < moveState.maxVelocity) {
-        moveState.velocity += moveState.acceleration;
+  if (isPresentingXR) return;
+  if (virtualJoystick.active && moveState.isMoving) {
+    moveState.velocity = virtualJoystick.intensity * moveState.maxVelocity;
+  } else if (!moveState.isMoving) {
+    moveState.velocity *= moveState.friction;
+    if (Math.abs(moveState.velocity) < 0.001) moveState.velocity = 0;
+  } else if (moveState.velocity < moveState.maxVelocity) {
+    moveState.velocity += moveState.acceleration;
+  }
+  if (moveState.velocity > 0 && !isTeleporting) {
+    const direction = new THREE.Vector3();
+    camera.getWorldDirection(direction); direction.y = 0; direction.normalize();
+    const right = new THREE.Vector3();
+    right.crossVectors(camera.up, direction).normalize();
+    const moveDir = new THREE.Vector3();
+    if (moveState.forward) moveDir.add(direction);
+    if (moveState.backward) moveDir.sub(direction);
+    if (moveState.left) moveDir.add(right);
+    if (moveState.right) moveDir.sub(right);
+    if (moveDir.length() > 0) {
+      moveDir.normalize();
+      camera.position.addScaledVector(moveDir, moveState.velocity);
+      controls.target.addScaledVector(moveDir, moveState.velocity);
+      clampToRoom(camera.position);
+      clampToRoom(controls.target);
     }
-
-    if (moveState.velocity > 0 && !isTeleporting) {
-        const direction = new THREE.Vector3();
-        camera.getWorldDirection(direction); direction.y = 0; direction.normalize();
-        const right = new THREE.Vector3();
-        right.crossVectors(camera.up, direction).normalize();
-        const moveDir = new THREE.Vector3();
-        if (moveState.forward) moveDir.add(direction);
-        if (moveState.backward) moveDir.sub(direction);
-        if (moveState.left) moveDir.add(right);
-        if (moveState.right) moveDir.sub(right);
-        if (moveDir.length() > 0) {
-            moveDir.normalize();
-            camera.position.addScaledVector(moveDir, moveState.velocity);
-            // CORREÇÃO: o alvo dos controles anda junto com a câmera,
-            // senão o OrbitControls "puxa" a visão de volta ao centro
-            controls.target.addScaledVector(moveDir, moveState.velocity);
-            clampToRoom(camera.position);
-            clampToRoom(controls.target);
-        }
-    }
+  }
 }
 
 /* ---------- Joystick virtual (mobile) ---------- */
 function createVirtualJoystick() {
-    joystickZone = document.createElement('div');
-    joystickZone.id = 'joystick-zone';
-    // CORREÇÃO: zona fixa e sempre no DOM em telas touch. Listeners agora
-    // são na própria zona com { passive: false } — antes estavam no document
-    // (passive por padrão no Chrome), o que não bloqueava o scroll e
-    // deixava o mesmo toque girar a câmera E andar ao mesmo tempo.
-    joystickZone.style.cssText = 'position:fixed;bottom:60px;left:40px;width:160px;height:160px;border-radius:50%;background:rgba(255,255,255,0.1);border:2px solid rgba(255,255,255,0.3);touch-action:none;z-index:1000;' + (isTouchDevice ? '' : 'display:none;');
-
-    joystickKnob = document.createElement('div');
-    joystickKnob.id = 'joystick-knob';
-    joystickKnob.style.cssText = 'position:absolute;width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,0.5);border:2px solid rgba(255,255,255,0.8);top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;';
-
-    joystickZone.appendChild(joystickKnob);
-    document.body.appendChild(joystickZone);
-
-    joystickZone.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        const rect = joystickZone.getBoundingClientRect();
-        virtualJoystick.active = true;
-        virtualJoystick.startX = rect.left + rect.width / 2;
-        virtualJoystick.startY = rect.top + rect.height / 2;
-        stopTourIfActive();
-    }, { passive: false });
-
-    joystickZone.addEventListener('touchmove', (e) => {
-        e.preventDefault();
-        if (!virtualJoystick.active) return;
-        const touch = e.touches[0];
-        virtualJoystick.currentX = touch.clientX; virtualJoystick.currentY = touch.clientY;
-        const dx = touch.clientX - virtualJoystick.startX;
-        const dy = touch.clientY - virtualJoystick.startY;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        const angle = Math.atan2(dy, dx);
-        virtualJoystick.distance = Math.min(distance, virtualJoystick.maxDistance);
-        virtualJoystick.angle = angle;
-        const knobX = Math.cos(angle) * virtualJoystick.distance;
-        const knobY = Math.sin(angle) * virtualJoystick.distance;
-        joystickKnob.style.transform = 'translate(calc(-50% + ' + knobX + 'px), calc(-50% + ' + knobY + 'px))';
-        updateJoystickMovement();
-    }, { passive: false });
-
-    const endTouch = (e) => {
-        e.preventDefault();
-        if (!virtualJoystick.active) return;
-        virtualJoystick.active = false; virtualJoystick.distance = 0; virtualJoystick.intensity = 0;
-        joystickKnob.style.transform = 'translate(-50%, -50%)';
-        moveState.forward = false; moveState.backward = false; moveState.left = false; moveState.right = false;
-        moveState.velocity = 0; moveState.isMoving = false;
-    };
-    joystickZone.addEventListener('touchend', endTouch, { passive: false });
-    joystickZone.addEventListener('touchcancel', endTouch, { passive: false });
+  joystickZone = document.createElement('div');
+  joystickZone.id = 'joystick-zone';
+  joystickZone.style.cssText = 'position:fixed;bottom:60px;left:40px;width:160px;height:160px;border-radius:50%;background:rgba(255,255,255,0.1);border:2px solid rgba(255,255,255,0.3);touch-action:none;z-index:1000;' + (isTouchDevice ? '' : 'display:none;');
+  joystickKnob = document.createElement('div');
+  joystickKnob.id = 'joystick-knob';
+  joystickKnob.style.cssText = 'position:absolute;width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,0.5);border:2px solid rgba(255,255,255,0.8);top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;';
+  joystickZone.appendChild(joystickKnob);
+  document.body.appendChild(joystickZone);
+  joystickZone.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    const rect = joystickZone.getBoundingClientRect();
+    virtualJoystick.active = true;
+    virtualJoystick.startX = rect.left + rect.width / 2;
+    virtualJoystick.startY = rect.top + rect.height / 2;
+    stopTourIfActive();
+  }, { passive: false });
+  joystickZone.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    if (!virtualJoystick.active) return;
+    const touch = e.touches[0];
+    virtualJoystick.currentX = touch.clientX; virtualJoystick.currentY = touch.clientY;
+    const dx = touch.clientX - virtualJoystick.startX;
+    const dy = touch.clientY - virtualJoystick.startY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    const angle = Math.atan2(dy, dx);
+    virtualJoystick.distance = Math.min(distance, virtualJoystick.maxDistance);
+    virtualJoystick.angle = angle;
+    const knobX = Math.cos(angle) * virtualJoystick.distance;
+    const knobY = Math.sin(angle) * virtualJoystick.distance;
+    joystickKnob.style.transform = 'translate(calc(-50% + ' + knobX + 'px), calc(-50% + ' + knobY + 'px))';
+    updateJoystickMovement();
+  }, { passive: false });
+  const endTouch = (e) => {
+    e.preventDefault();
+    if (!virtualJoystick.active) return;
+    virtualJoystick.active = false; virtualJoystick.distance = 0; virtualJoystick.intensity = 0;
+    joystickKnob.style.transform = 'translate(-50%, -50%)';
+    moveState.forward = false; moveState.backward = false; moveState.left = false; moveState.right = false;
+    moveState.velocity = 0; moveState.isMoving = false;
+  };
+  joystickZone.addEventListener('touchend', endTouch, { passive: false });
+  joystickZone.addEventListener('touchcancel', endTouch, { passive: false });
 }
-
 function updateJoystickMovement() {
-    const threshold = 15;
-    const angle = virtualJoystick.angle;
-    const cos = Math.cos(angle); const sin = Math.sin(angle);
-    virtualJoystick.intensity = Math.min(virtualJoystick.distance / virtualJoystick.maxDistance, 1);
-    moveState.forward = virtualJoystick.distance > threshold && sin < -0.3;
-    moveState.backward = virtualJoystick.distance > threshold && sin > 0.3;
-    moveState.left = virtualJoystick.distance > threshold && cos < -0.3;
-    moveState.right = virtualJoystick.distance > threshold && cos > 0.3;
-    moveState.isMoving = moveState.forward || moveState.backward || moveState.left || moveState.right;
-    if (moveState.isMoving) stopTourIfActive();
+  const threshold = 15;
+  const angle = virtualJoystick.angle;
+  const cos = Math.cos(angle); const sin = Math.sin(angle);
+  virtualJoystick.intensity = Math.min(virtualJoystick.distance / virtualJoystick.maxDistance, 1);
+  moveState.forward = virtualJoystick.distance > threshold && sin < -0.3;
+  moveState.backward = virtualJoystick.distance > threshold && sin > 0.3;
+  moveState.left = virtualJoystick.distance > threshold && cos < -0.3;
+  moveState.right = virtualJoystick.distance > threshold && cos > 0.3;
+  moveState.isMoving = moveState.forward || moveState.backward || moveState.left || moveState.right;
+  if (moveState.isMoving) stopTourIfActive();
 }
-
 function updateVirtualJoystickVisual() {
-    if (joystickKnob) joystickKnob.style.transform = 'translate(-50%, -50%)';
+  if (joystickKnob) joystickKnob.style.transform = 'translate(-50%, -50%)';
 }
 
 /* ---------- Captura de mouse (pointer lock) ---------- */
 function syncLookAnglesFromCamera() {
-    const euler = new THREE.Euler().setFromQuaternion(camera.quaternion, 'YXZ');
-    yaw = euler.y; pitch = euler.x;
+  const euler = new THREE.Euler().setFromQuaternion(camera.quaternion, 'YXZ');
+  yaw = euler.y; pitch = euler.x;
 }
-
 function togglePointerLock() {
-    if (document.pointerLockElement === renderer.domElement) {
-        document.exitPointerLock();
-    } else {
-        // CORREÇÃO: requestPointerLock pode rejeitar (ex.: chamado logo após
-        // sair com ESC); sem o catch, vira erro não tratado no console
-        const p = renderer.domElement.requestPointerLock();
-        if (p && typeof p.catch === 'function') p.catch(() => {});
-    }
+  if (isPresentingXR) return;
+  if (document.pointerLockElement === renderer.domElement) {
+    document.exitPointerLock();
+  } else {
+    const p = renderer.domElement.requestPointerLock();
+    if (p && typeof p.catch === 'function') p.catch(() => {});
+  }
 }
-
 document.addEventListener('pointerlockchange', () => {
-    const isLocked = document.pointerLockElement === renderer.domElement;
-    controls.enabled = !isLocked;
-    if (isLocked) { syncLookAnglesFromCamera(); resetAllInput(); }
-    const captureBtn = document.getElementById('capture-btn');
-    if (captureBtn) {
-        captureBtn.textContent = isLocked ? 'Mouse Capturado' : 'Capturar Mouse';
-        captureBtn.style.background = isLocked ? 'rgba(39,174,96,0.9)' : 'rgba(52,152,219,0.9)';
-    }
+  const isLocked = document.pointerLockElement === renderer.domElement;
+  controls.enabled = !isLocked;
+  if (isLocked) { syncLookAnglesFromCamera(); resetAllInput(); }
+  const captureBtn = document.getElementById('capture-btn');
+  if (captureBtn) {
+    captureBtn.textContent = isLocked ? 'Mouse Capturado' : 'Capturar Mouse';
+    captureBtn.style.background = isLocked ? 'rgba(39,174,96,0.9)' : 'rgba(52,152,219,0.9)';
+  }
 });
-
-// CORREÇÃO: antes não existia olhar com o mouse capturado (o HUD prometia,
-// mas nada era implementado). Agora movementX/Y giram a câmera em YXZ.
 document.addEventListener('mousemove', (e) => {
-    if (document.pointerLockElement !== renderer.domElement) return;
-    yaw -= e.movementX * 0.002;
-    pitch -= e.movementY * 0.002;
-    pitch = Math.max(-Math.PI / 2 + 0.05, Math.min(Math.PI / 2 - 0.05, pitch));
-    camera.quaternion.setFromEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ'));
-    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-    controls.target.copy(camera.position).addScaledVector(forward, 2);
+  if (document.pointerLockElement !== renderer.domElement) return;
+  yaw -= e.movementX * 0.002;
+  pitch -= e.movementY * 0.002;
+  pitch = Math.max(-Math.PI / 2 + 0.05, Math.min(Math.PI / 2 - 0.05, pitch));
+  camera.quaternion.setFromEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ'));
+  const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+  controls.target.copy(camera.position).addScaledVector(forward, 2);
 });
 
 /* ---------- Teleporte ---------- */
 function setupTeleport() {
-    let mouseDownTime = 0;
-    let isMouseDragging = false;
-
-    renderer.domElement.addEventListener('mousedown', (e) => {
-        if (e.button === 2) { mouseDownTime = Date.now(); isMouseDragging = false; }
-    });
-    renderer.domElement.addEventListener('mousemove', (e) => {
-        if (e.buttons === 2 && mouseDownTime > 0) isMouseDragging = true;
-    });
-    renderer.domElement.addEventListener('mouseup', (e) => {
-        if (e.button === 2 && mouseDownTime > 0) {
-            const holdTime = Date.now() - mouseDownTime;
-            if (holdTime >= 300 && !isMouseDragging) {
-                // CORREÇÃO: captura por clique direito longo agora existe
-                // (o HUD prometia, mas não estava implementada)
-                togglePointerLock();
-            } else if (holdTime < 300 && !isMouseDragging) {
-                performTeleport();
-            }
-            mouseDownTime = 0; isMouseDragging = false;
-        }
-    });
-    renderer.domElement.addEventListener('contextmenu', (e) => e.preventDefault());
-    // CORREÇÃO: interagir com a cena cancela o tour automático
-    renderer.domElement.addEventListener('pointerdown', stopTourIfActive);
+  let mouseDownTime = 0;
+  let isMouseDragging = false;
+  renderer.domElement.addEventListener('mousedown', (e) => {
+    if (e.button === 2) { mouseDownTime = Date.now(); isMouseDragging = false; }
+  });
+  renderer.domElement.addEventListener('mousemove', (e) => {
+    if (e.buttons === 2 && mouseDownTime > 0) isMouseDragging = true;
+  });
+  renderer.domElement.addEventListener('mouseup', (e) => {
+    if (e.button === 2 && mouseDownTime > 0) {
+      const holdTime = Date.now() - mouseDownTime;
+      if (holdTime >= 300 && !isMouseDragging) {
+        togglePointerLock();
+      } else if (holdTime < 300 && !isMouseDragging) {
+        performTeleport();
+      }
+      mouseDownTime = 0; isMouseDragging = false;
+    }
+  });
+  renderer.domElement.addEventListener('contextmenu', (e) => e.preventDefault());
+  renderer.domElement.addEventListener('pointerdown', stopTourIfActive);
 }
-
 function performTeleport() {
-    if (isTeleporting || isTouring) return;
-    const raycaster = new THREE.Raycaster();
-    raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-    // CORREÇÃO: inclui a área demo no raycast (antes só o piso base)
-    const floorIntersects = raycaster.intersectObjects([floorMesh, demoFloorMesh]);
-    if (floorIntersects.length > 0) {
-        const targetPoint = floorIntersects[0].point;
-        const distance = camera.position.distanceTo(targetPoint);
-        if (distance > 8) { showNotification('Muito longe!', 'error'); return; }
-        teleportTarget = targetPoint.clone();
-        teleportTarget.y = 1.6;
-        clampToRoom(teleportTarget);
-        isTeleporting = true;
-        showNotification('Teleportando...', 'info');
-    }
+  if (isTeleporting || isTouring || isPresentingXR) return;
+  const raycaster = new THREE.Raycaster();
+  raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+  const floorIntersects = raycaster.intersectObjects([floorMesh, demoFloorMesh]);
+  if (floorIntersects.length > 0) {
+    const targetPoint = floorIntersects[0].point;
+    const distance = camera.position.distanceTo(targetPoint);
+    if (distance > 8) { showNotification('Muito longe!', 'error'); return; }
+    teleportTarget = targetPoint.clone();
+    teleportTarget.y = 1.6;
+    clampToRoom(teleportTarget);
+    isTeleporting = true;
+    showNotification('Teleportando...', 'info');
+  }
 }
-
 function updateTeleport() {
-    if (!isTeleporting || !teleportTarget) return;
-    const remaining = camera.position.distanceTo(teleportTarget);
-    if (remaining < 0.05) {
-        camera.position.copy(teleportTarget);
-        isTeleporting = false; teleportTarget = null;
-        showNotification('Chegou!', 'success');
+  if (!isTeleporting || !teleportTarget) return;
+  const remaining = camera.position.distanceTo(teleportTarget);
+  if (remaining < 0.05) {
+    camera.position.copy(teleportTarget);
+    isTeleporting = false; teleportTarget = null;
+    showNotification('Chegou!', 'success');
+  } else {
+    const delta = teleportTarget.clone().sub(camera.position);
+    const step = Math.min(Math.max(remaining * 0.18, 0.02), remaining);
+    delta.setLength(step);
+    camera.position.add(delta);
+    controls.target.add(delta);
+  }
+}
+
+/* ---------- WebXR: AR e VR ---------- */
+const xrButtonsContainer = document.createElement('div');
+xrButtonsContainer.id = 'xr-buttons';
+document.body.appendChild(xrButtonsContainer);
+
+function createUnsupportedButton(label) {
+  const btn = document.createElement('button');
+  btn.textContent = label;
+  btn.disabled = true;
+  btn.title = 'Recurso indisponivel neste navegador/dispositivo';
+  return btn;
+}
+
+function setupXRButtons() {
+  if (!('xr' in navigator)) {
+    xrButtonsContainer.appendChild(createUnsupportedButton('AR indisponivel'));
+    xrButtonsContainer.appendChild(createUnsupportedButton('VR indisponivel'));
+    showNotification('WebXR nao suportado neste navegador', 'error');
+    return;
+  }
+
+  navigator.xr.isSessionSupported('immersive-ar').then((supported) => {
+    if (supported) {
+      const arButton = ARButton.createButton(renderer, {
+        requiredFeatures: ['hit-test'],
+        optionalFeatures: ['dom-overlay'],
+        domOverlay: { root: document.body }
+      });
+      arButton.addEventListener('click', () => stopTourIfActive());
+      xrButtonsContainer.appendChild(arButton);
     } else {
-        // CORREÇÃO: interpolação suave até o fim (antes misturava progresso
-        // fixo com lerp e dava um "salto" no último frame) e leva o alvo
-        // dos controles junto
-        const delta = teleportTarget.clone().sub(camera.position);
-        const step = Math.min(Math.max(remaining * 0.18, 0.02), remaining);
-        delta.setLength(step);
-        camera.position.add(delta);
-        controls.target.add(delta);
+      xrButtonsContainer.appendChild(createUnsupportedButton('AR indisponivel'));
     }
+  }).catch(() => {
+    xrButtonsContainer.appendChild(createUnsupportedButton('AR indisponivel'));
+  });
+
+  navigator.xr.isSessionSupported('immersive-vr').then((supported) => {
+    if (supported) {
+      const vrButton = VRButton.createButton(renderer);
+      vrButton.addEventListener('click', () => stopTourIfActive());
+      xrButtonsContainer.appendChild(vrButton);
+    } else {
+      xrButtonsContainer.appendChild(createUnsupportedButton('VR indisponivel'));
+    }
+  }).catch(() => {
+    xrButtonsContainer.appendChild(createUnsupportedButton('VR indisponivel'));
+  });
 }
+setupXRButtons();
 
-/* ---------- HUD ---------- */
-function createHUD() {
-    const instructions = document.createElement('div');
-    instructions.id = 'instructions';
-    instructions.style.cssText = 'position:fixed;top:10px;left:10px;background:rgba(0,0,0,0.7);color:white;padding:15px;border-radius:8px;font-family:Arial,sans-serif;font-size:13px;z-index:1000;max-width:280px;line-height:1.5;';
-    instructions.innerHTML = '<strong>Decor Colors - Showroom</strong><br>'
-        + 'PC: WASD/Setas - Mover | Arrastar - Olhar<br>'
-        + 'Clique direito curto - Teleporte<br>'
-        + 'Clique direito longo - Capturar/Soltar mouse<br>'
-        + 'ESC - Sair do mouse<br>'
-        + 'Mobile: Joystick - Mover | Arrastar - Olhar<br><br>'
-        + '<button id="tour-btn" style="padding:8px 16px;background:#3498db;color:white;border:none;border-radius:4px;cursor:pointer;margin-top:8px;">Iniciar Tour</button>'
-        + '<button id="stop-tour-btn" style="padding:8px 16px;background:#e74c3c;color:white;border:none;border-radius:4px;cursor:pointer;margin-top:8px;margin-left:8px;">Parar Tour</button>';
-    document.body.appendChild(instructions);
-
-    document.getElementById('tour-btn').addEventListener('click', startTour);
-    document.getElementById('stop-tour-btn').addEventListener('click', stopTour);
-
-    const surfaceInfo = document.createElement('div');
-    surfaceInfo.id = 'surface-info';
-    surfaceInfo.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.7);color:white;padding:10px 20px;border-radius:8px;font-family:Arial,sans-serif;font-size:14px;z-index:1000;text-align:center;';
-    surfaceInfo.textContent = 'Superficie: Nenhuma';
-    document.body.appendChild(surfaceInfo);
-
-    const captureBtn = document.createElement('button');
-    captureBtn.id = 'capture-btn';
-    captureBtn.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:12px 20px;background:rgba(52,152,219,0.9);color:white;border:none;border-radius:8px;font-family:Arial,sans-serif;font-size:14px;cursor:pointer;z-index:1000;';
-    captureBtn.textContent = 'Capturar Mouse';
-    document.body.appendChild(captureBtn);
-    // CORREÇÃO: removido o document.addEventListener('click') global que
-    // capturava o mouse em QUALQUER clique — inclusive nos botões do HUD,
-    // travando a interface
-    captureBtn.addEventListener('click', togglePointerLock);
-}
-
-/* ---------- Resize e loop ---------- */
-window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.xr.addEventListener('sessionstart', () => {
+  isPresentingXR = true;
+  resetAllInput();
+  controls.enabled = false;
+  stopTourIfActive();
+  showNotification('Sessao XR iniciada', 'success');
+});
+renderer.xr.addEventListener('sessionend', () => {
+  isPresentingXR = false;
+  controls.enabled = true;
+  showNotification('Sessao XR encerrada', 'info');
+});
+renderer.xr.addEventListener('sessionstart', () => {
+  const session = renderer.xr.getSession();
+  if (session) {
+    session.addEventListener('end', () => { isPresentingXR = false; controls.enabled = true; });
+  }
 });
 
-createVirtualJoystick();
-createHUD();
-setupTeleport();
 
-function animate() {
-    requestAnimationFrame(animate);
-    updateMovement();
-    updateTeleport();
-    // CORREÇÃO: com o mouse capturado quem controla a rotação é o mousemove;
-    // pular o update do OrbitControls evita que ele "corrija" a câmera
-    if (controls.enabled) controls.update();
-    renderer.render(scene, camera);
-}
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
 
-animate();
+    const clock = new THREE.Clock();
+    function animate() {
+      const delta = clock.getDelta();
+      updateMovement(delta);
+      if (controls.enabled) controls.update();
+      renderer.render(scene, camera);
+    }
+    renderer.setAnimationLoop(animate);
 
-setTimeout(() => showNotification('Bem-vindo ao Showroom!', 'success'), 500);
-</script>
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'KeyW') moveState.forward = true;
+      if (e.code === 'KeyS') moveState.backward = true;
+      if (e.code === 'KeyA') moveState.left = true;
+      if (e.code === 'KeyD') moveState.right = true;
+      moveState.isMoving = moveState.forward || moveState.backward || moveState.left || moveState.right;
+    });
+    window.addEventListener('keyup', (e) => {
+      if (e.code === 'KeyW') moveState.forward = false;
+      if (e.code === 'KeyS') moveState.backward = false;
+      if (e.code === 'KeyA') moveState.left = false;
+      if (e.code === 'KeyD') moveState.right = false;
+      moveState.isMoving = moveState.forward || moveState.backward || moveState.left || moveState.right;
+    });
+
+    init();
+  }
+
+  main().catch((err) => {
+    console.error('Erro fatal ao iniciar showroom:', err);
+    showNotification('Erro ao carregar showroom: ' + err.message, 'error');
+  });
+  </script>
 </body>
 </html>
