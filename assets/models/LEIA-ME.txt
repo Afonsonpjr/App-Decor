@@ -1,15 +1,9 @@
-MODELOS 3D
+MOCKUPS
 
-Arquivos esperados futuramente:
-loja-web.glb
-loja-ar.glb
-loja-vr.glb
-quartzo-mica.glb
-topazio.glb
-off-white.glb
-bianco.glb
-olho-de-tigre.glb
-onix.glb
-jaspe.glb
-
-Mantenha cada modelo GLB otimizado para web.
+Nomes esperados pelo catalogo:
+topazio.jpg
+off-white.jpg
+bianco.jpg
+olho-de-tigre.jpg
+onix.jpg
+jaspe.jpg
