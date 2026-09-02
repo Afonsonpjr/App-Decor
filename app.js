@@ -1,4 +1,4 @@
-// App-Decor - Main branch com carregamento flexivel de imagens
+// App-Decor - Main branch otimizada (sem arquivos inexistentes)
 
 import * as THREE from 'https://unpkg.com/three@0.157.0/build/three.module.js';
 import { OrbitControls } from 'https://unpkg.com/three@0.157.0/examples/jsm/controls/OrbitControls.js';
@@ -251,19 +251,6 @@ const dracoLoader = new DRACOLoader();
 dracoLoader.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');
 const gltfLoader = new GLTFLoader();
 gltfLoader.setDRACOLoader(dracoLoader);
-const loadedModels = [];
-
-function loadModel(path, position, rotation = [0, 0, 0], scale = [1, 1, 1]) {
-    gltfLoader.load(path, (gltf) => {
-        const model = gltf.scene;
-        model.position.set(...position);
-        model.rotation.set(...rotation);
-        model.scale.set(...scale);
-        model.traverse((child) => { if (child.isMesh) { child.castShadow = true; child.receiveShadow = true; } });
-        scene.add(model);
-        loadedModels.push(model);
-    }, undefined, (error) => { /* Modelo opcional - silencioso */ });
-}
 
 const textureLoader = new THREE.TextureLoader();
 
@@ -278,7 +265,6 @@ function loadTextureFlexible(basePath, callback) {
             texture.colorSpace = THREE.SRGBColorSpace;
             texture.wrapS = THREE.RepeatWrapping;
             texture.wrapT = THREE.RepeatWrapping;
-            console.log('Textura carregada:', path);
             callback(texture);
         }, undefined, (error) => { tryExtension(index + 1); });
     }
@@ -391,7 +377,7 @@ function createHUD() {
     const instructions = document.createElement('div');
     instructions.id = 'instructions';
     instructions.style.cssText = 'position:fixed;top:10px;left:10px;background:rgba(0,0,0,0.7);color:white;padding:15px;border-radius:8px;font-family:Arial,sans-serif;font-size:13px;z-index:1000;max-width:280px;line-height:1.5;';
-    instructions.innerHTML = '<strong>Decor Colors - Showroom</strong><br>PC: WASD/Setas - Mover | Mouse - Olhar<br>Clique direito curto - Teleporte<br>Clique direito longo - Capturar mouse<br>ESC - Sair do mouse<br>Mobile: Toque esquerdo - Mover | Deslizar - Olhar<br><br><strong>ACESSO PELO CELULAR:</strong><br>Use o link HTTPS do Cloudflare<br><br><button id="tour-btn" style="padding:8px 16px;background:#3498db;color:white;border:none;border-radius:4px;cursor:pointer;margin-top:8px;">Iniciar Tour</button><button id="stop-tour-btn" style="padding:8px 16px;background:#e74c3c;color:white;border:none;border-radius:4px;cursor:pointer;margin-top:8px;margin-left:8px;">Parar Tour</button>';
+    instructions.innerHTML = '<strong>Decor Colors - Showroom</strong><br>PC: WASD/Setas - Mover | Mouse - Olhar<br>Clique direito curto - Teleporte<br>Clique direito longo - Capturar mouse<br>ESC - Sair do mouse<br>Mobile: Toque esquerdo - Mover | Deslizar - Olhar<br><br><button id="tour-btn" style="padding:8px 16px;background:#3498db;color:white;border:none;border-radius:4px;cursor:pointer;margin-top:8px;">Iniciar Tour</button><button id="stop-tour-btn" style="padding:8px 16px;background:#e74c3c;color:white;border:none;border-radius:4px;cursor:pointer;margin-top:8px;margin-left:8px;">Parar Tour</button>';
     document.body.appendChild(instructions);
     document.getElementById('tour-btn').addEventListener('click', startTour);
     document.getElementById('stop-tour-btn').addEventListener('click', stopTour);
@@ -429,9 +415,6 @@ window.addEventListener('resize', () => {
 createVirtualJoystick();
 createHUD();
 setupTeleport();
-
-loadModel('assets/models/pedestal.glb', [-1.5, 0, -3.5], [0, Math.PI / 4, 0], [0.5, 0.5, 0.5]);
-loadModel('assets/models/pedestal.glb', [1.5, 0, -3.5], [0, -Math.PI / 4, 0], [0.5, 0.5, 0.5]);
 
 function animate() {
     requestAnimationFrame(animate);
