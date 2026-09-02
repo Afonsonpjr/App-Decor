@@ -1,10 +1,5 @@
 import * as THREE from 'three';
 
-/*
-  DECOR COLORS — QUARTZO MICA
-  Versão estabilizada: valida todos os elementos do HTML antes de registrar eventos.
-*/
-
 const $ = (id) => document.getElementById(id);
 const sceneHost = $('scene');
 const statusEl = $('status');
@@ -18,55 +13,28 @@ const selectedName = $('selectedName');
 
 const FALLBACK_CATALOG = {
   products: [
-    { id: 'topazio', name: 'Topázio', hex: '#9A7350', mockup: 'assets/mockups/topazio.jpg', texture: 'assets/textures/topazio.jpg', description: 'Efeito mineral Quartzo Mica em tonalidade quente para parede e piso.' },
-    { id: 'off-white', name: 'Off-White', hex: '#C8C0B5', mockup: 'assets/mockups/off-white.jpg', texture: 'assets/textures/off-white.jpg', description: 'Tonalidade clara e versátil que destaca o acabamento mineral.' },
-    { id: 'bianco', name: 'Bianco', hex: '#D1CDCA', mockup: 'assets/mockups/bianco.jpg', texture: 'assets/textures/bianco.jpg', description: 'Acabamento mineral claro, elegante e contemporâneo.' },
-    { id: 'olho-de-tigre', name: 'Olho de Tigre', hex: '#8E6746', mockup: 'assets/mockups/olho-de-tigre.jpg', texture: 'assets/textures/olho-de-tigre.jpg', description: 'Tonalidade terrosa profunda, inspirada em minerais naturais.' },
-    { id: 'onix', name: 'Ônix', hex: '#252526', mockup: 'assets/mockups/onix.jpg', texture: 'assets/textures/onix.jpg', description: 'Acabamento escuro e sofisticado para contrastes marcantes.' },
-    { id: 'jaspe', name: 'Jaspe', hex: '#806147', mockup: 'assets/mockups/jaspe.jpg', texture: 'assets/textures/jaspe.jpg', description: 'Tom orgânico e acolhedor para composições naturais.' }
+    { id: 'topazio', name: 'Topázio', hex: '#9A7350', mockup: 'assets/mockups/topazio.jpg', texture: 'assets/textures/topazio-albedo.jpg', description: 'Efeito mineral Quartzo Mica em tonalidade quente para parede e piso.' },
+    { id: 'off-white', name: 'Off-White', hex: '#C8C0B5', mockup: 'assets/mockups/off-white.jpg', texture: 'assets/textures/off-white-albedo.jpg', description: 'Tonalidade clara e versátil que destaca o acabamento mineral.' },
+    { id: 'bianco', name: 'Bianco', hex: '#D1CDCA', mockup: 'assets/mockups/bianco.jpg', texture: 'assets/textures/bianco-albedo.jpg', description: 'Acabamento mineral claro, elegante e contemporâneo.' },
+    { id: 'olho-de-tigre', name: 'Olho de Tigre', hex: '#8E6746', mockup: 'assets/mockups/olho-de-tigre.jpg', texture: 'assets/textures/olho-de-tigre-albedo.jpg', description: 'Tonalidade terrosa profunda, inspirada em minerais naturais.' },
+    { id: 'onix', name: 'Ônix', hex: '#252526', mockup: 'assets/mockups/onix.jpg', texture: 'assets/textures/onix-albedo.jpg', description: 'Acabamento escuro e sofisticado para contrastes marcantes.' },
+    { id: 'jaspe', name: 'Jaspe', hex: '#806147', mockup: 'assets/mockups/jaspe.jpg', texture: 'assets/textures/jaspe-albedo.jpg', description: 'Tom orgânico e acolhedor para composições naturais.' }
   ],
   referenceTextures: { mineral: 'assets/textures/minerio.jpg', floor: 'assets/textures/quartzo-mica-piso.jpg' }
 };
 
 function on(id, event, callback) {
   const element = $(id);
-  if (!element) {
-    console.warn(`[Decor Colors] Elemento #${id} não encontrado no HTML. Evento ignorado.`);
-    return;
-  }
+  if (!element) return console.warn(`[Decor Colors] #${id} não existe.`);
   element.addEventListener(event, callback);
 }
-function setText(element, text) { if (element) element.textContent = text; }
-function notify(text) { setText(statusEl, text); }
+function notify(message) { if (statusEl) statusEl.textContent = message; }
 function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
+function setActive(id, active) { $(id)?.classList.toggle('active', active); }
 
-if (!sceneHost) {
-  console.error('[Decor Colors] #scene não foi encontrado. Use o index.html atualizado.');
-  if (loadingEl) loadingEl.style.display = 'none';
-  throw new Error('Elemento #scene ausente');
-}
+if (!sceneHost) throw new Error('Elemento #scene ausente no index.html');
 
-let catalog = FALLBACK_CATALOG;
-let selectedProduct = FALLBACK_CATALOG.products[0];
-let currentSurface = 'wall';
-let wallMaterial;
-let floorMaterial;
-let xrMode = null;
-let hitTestSource = null;
-let floorSpace = null;
-let arPlaced = false;
-let reticleSamples = [];
-let tourActive = false;
-let tourIndex = 0;
-let yaw = 0;
-let pitch = -0.03;
-const keys = {};
-const joystick = { x: 0, y: 0 };
-const moveTarget = new THREE.Vector3();
-const pickables = [];
-const floorTargets = [];
 const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
-
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -82,7 +50,6 @@ camera.rotation.order = 'YXZ';
 camera.position.set(0, 1.65, 6.1);
 const showroom = new THREE.Group();
 scene.add(showroom);
-
 scene.add(new THREE.HemisphereLight(0xfff8e7, 0x1c2322, 1.55));
 const keyLight = new THREE.DirectionalLight(0xffe6b3, 2.4);
 keyLight.position.set(-4, 8, 5);
@@ -92,6 +59,31 @@ scene.add(keyLight);
 const fillLight = new THREE.PointLight(0xe7c56e, 25, 11, 2);
 fillLight.position.set(0, 3, -3.4);
 scene.add(fillLight);
+
+let catalog = FALLBACK_CATALOG;
+let selectedProduct = FALLBACK_CATALOG.products[0];
+let currentSurface = 'wall';
+let appState = 'NORMAL';
+let wallMaterial;
+let floorMaterial;
+let sampleMaterial;
+let xrMode = null;
+let hitTestSource = null;
+let floorSpace = null;
+let arPlaced = false;
+let reticleSamples = [];
+const pickables = [];
+const floorTargets = [];
+const colliders = [];
+const keys = {};
+const inputAxis = new THREE.Vector2();
+const velocity = new THREE.Vector3();
+const desiredVelocity = new THREE.Vector3();
+const teleportTarget = new THREE.Vector3();
+let teleporting = false;
+let yaw = 0;
+let pitch = -0.03;
+let tourIndex = 0;
 
 function material(color, roughness = 0.7, metalness = 0) {
   return new THREE.MeshStandardMaterial({ color, roughness, metalness });
@@ -129,17 +121,16 @@ function textTexture(title, subtitle = '') {
   texture.colorSpace = THREE.SRGBColorSpace;
   return texture;
 }
+function addCollider(x, z, width, depth) {
+  colliders.push({ minX: x - width / 2, maxX: x + width / 2, minZ: z - depth / 2, maxZ: z + depth / 2 });
+}
 function createCan(product, parent) {
   const group = new THREE.Group();
   parent.add(group);
   const body = addMesh(new THREE.CylinderGeometry(.29, .31, .62, 28), material('#f0f0eb', .31, .05), 0, .31, 0, group);
   const label = addMesh(new THREE.CylinderGeometry(.315, .315, .36, 28), material(product.hex, .46), 0, .31, 0, group);
   const lid = addMesh(new THREE.CylinderGeometry(.29, .30, .06, 28), material('#171918', .22, .73), 0, .65, 0, group);
-  [body, label, lid].forEach(item => {
-    item.userData.product = product;
-    pickables.push(item);
-  });
-  group.userData.product = product;
+  [body, label, lid].forEach(item => { item.userData.product = product; pickables.push(item); });
   return group;
 }
 function createPedestal(product, index) {
@@ -147,7 +138,9 @@ function createPedestal(product, index) {
   showroom.add(group);
   const angle = (index / catalog.products.length) * Math.PI * 2 + 0.2;
   const radius = 4.5;
-  group.position.set(Math.cos(angle) * radius, 0, Math.sin(angle) * radius - .25);
+  const x = Math.cos(angle) * radius;
+  const z = Math.sin(angle) * radius - .25;
+  group.position.set(x, 0, z);
   group.rotation.y = -angle + Math.PI / 2;
   const base = addBox(1.1, .64, 1.1, material('#2d302e', .55, .05), 0, .32, 0, group);
   const top = addBox(.92, .08, .92, material(product.hex, .33, .1), 0, .68, 0, group);
@@ -160,11 +153,13 @@ function createPedestal(product, index) {
   plane.position.set(0, 1.70, -.01);
   plane.rotation.y = Math.PI;
   group.add(plane);
+  addCollider(x, z, 1.35, 1.35);
 }
 function buildShowroom() {
   const W = 17, D = 15, H = 5;
   floorMaterial = material('#79736c', .48, .04);
   wallMaterial = material('#9e8d7d', .62, .02);
+  sampleMaterial = material('#615b54', .55, .02);
   const dark = material('#171a18', .82);
   const trim = material('#b99442', .33, .65);
   const floor = addBox(W, .12, D, floorMaterial, 0, 0, 0);
@@ -179,7 +174,7 @@ function buildShowroom() {
   addBox(.12, .12, D, trim, -W / 2 + .14, .12, 0);
   addBox(.12, .12, D, trim, W / 2 - .14, .12, 0);
   addBox(9.7, 3.25, .09, wallMaterial, 0, 2.05, -D / 2 + .29);
-  const displayFloor = addBox(4.5, .03, 3.1, floorMaterial, 0, .09, -4.65);
+  const displayFloor = addBox(4.5, .03, 3.1, sampleMaterial, 0, .09, -4.65);
   floorTargets.push(displayFloor);
   const sign = new THREE.Mesh(new THREE.PlaneGeometry(6.8, 1.46), new THREE.MeshBasicMaterial({ map: textTexture('decor colors', 'QUARTZO MICA') }));
   sign.position.set(0, 3.45, -D / 2 + .19);
@@ -192,9 +187,12 @@ function buildShowroom() {
   }
   addBox(5.3, .82, 1.1, material('#372f26', .6), 0, .42, 5.7);
   addBox(5.6, .1, 1.28, material('#80684e', .42), 0, .87, 5.7);
+  addCollider(0, 5.7, 5.7, 1.55);
   catalog.products.forEach(createPedestal);
 }
+
 function loadTexture(url, repeatX, repeatY, callback) {
+  if (!url) return;
   new THREE.TextureLoader().load(url, texture => {
     texture.colorSpace = THREE.SRGBColorSpace;
     texture.wrapS = THREE.RepeatWrapping;
@@ -202,34 +200,43 @@ function loadTexture(url, repeatX, repeatY, callback) {
     texture.repeat.set(repeatX, repeatY);
     texture.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 4);
     callback(texture);
-  }, undefined, () => console.warn(`[Decor Colors] Não foi possível carregar textura: ${url}`));
+  }, undefined, () => console.warn(`[Decor Colors] Textura não encontrada: ${url}`));
+}
+function surfaceMaterial(surface) {
+  return surface === 'wall' ? wallMaterial : surface === 'floor' ? floorMaterial : sampleMaterial;
 }
 function applyTexture(url, surface) {
-  const target = surface === 'wall' ? wallMaterial : floorMaterial;
+  const target = surfaceMaterial(surface);
   if (!target || !url) return;
-  loadTexture(url, surface === 'wall' ? 2.2 : 3.2, surface === 'wall' ? 1.15 : 3.2, texture => {
+  const repeat = surface === 'wall' ? [2.2, 1.15] : surface === 'floor' ? [3.2, 3.2] : [1, 1];
+  loadTexture(url, repeat[0], repeat[1], texture => {
     target.map = texture;
     target.color.set('#ffffff');
     target.needsUpdate = true;
   });
 }
 function applyProduct(product, surface = currentSurface) {
-  if (!product || !wallMaterial || !floorMaterial) return;
+  if (!product) return;
   selectedProduct = product;
   currentSurface = surface;
-  const target = surface === 'wall' ? wallMaterial : floorMaterial;
-  target.map = null;
-  target.color.set(product.hex);
-  target.roughness = surface === 'wall' ? .55 : .40;
-  target.metalness = .05;
-  applyTexture(product.texture, surface);
-  setText(selectedName, product.name);
+  const target = surfaceMaterial(surface);
+  if (target) {
+    target.map = null;
+    target.color.set(product.hex);
+    target.roughness = surface === 'wall' ? .55 : surface === 'floor' ? .40 : .48;
+    target.metalness = .04;
+    applyTexture(product.texture, surface);
+  }
+  setActive('wallMode', surface === 'wall');
+  setActive('floorMode', surface === 'floor');
   document.querySelectorAll('.product-item').forEach(button => button.classList.toggle('active', button.dataset.id === product.id));
+  if (selectedName) selectedName.textContent = product.name;
   if (productImage) productImage.src = product.mockup;
-  setText(productTitle, product.name);
-  setText(productDescription, product.description);
-  if (inspector) inspector.classList.add('open');
-  notify(`${product.name} aplicado em ${surface === 'wall' ? 'parede' : 'piso'}.`);
+  if (productTitle) productTitle.textContent = product.name;
+  if (productDescription) productDescription.textContent = product.description;
+  inspector?.classList.add('open');
+  cancelTeleport();
+  notify(`${product.name} aplicado somente em ${surface === 'wall' ? 'parede' : 'piso'}.`);
 }
 function buildProductList() {
   if (!productList) return;
@@ -242,7 +249,7 @@ function buildProductList() {
     const image = document.createElement('img');
     image.src = product.mockup;
     image.alt = product.name;
-    image.onerror = () => image.style.opacity = '.15';
+    image.onerror = () => image.style.opacity = '.18';
     const caption = document.createElement('span');
     caption.textContent = product.name;
     const dot = document.createElement('i');
@@ -256,6 +263,27 @@ function buildProductList() {
 
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
+function isWalkable(position) {
+  const margin = .36;
+  if (position.x < -7.7 || position.x > 7.7 || position.z < -6.7 || position.z > 6.7) return false;
+  return !colliders.some(box => position.x > box.minX - margin && position.x < box.maxX + margin && position.z > box.minZ - margin && position.z < box.maxZ + margin);
+}
+function cancelTeleport() {
+  teleporting = false;
+  teleportTarget.set(0, 0, 0);
+}
+function startTeleport(point) {
+  const target = new THREE.Vector3(point.x, 1.65, point.z);
+  if (!isWalkable(target)) {
+    notify('Esse ponto está ocupado por um expositor. Escolha uma área livre do piso.');
+    return;
+  }
+  teleportTarget.copy(target);
+  teleporting = true;
+  appState = 'TELEPORTANDO';
+  velocity.set(0, 0, 0);
+  notify('Movendo até o ponto selecionado…');
+}
 function pick(normalizedX, normalizedY) {
   pointer.set(normalizedX, normalizedY);
   raycaster.setFromCamera(pointer, camera);
@@ -265,15 +293,16 @@ function pick(normalizedX, normalizedY) {
     return;
   }
   const floorHit = raycaster.intersectObjects(floorTargets, false)[0];
-  if (floorHit && !tourActive) {
-    moveTarget.copy(floorHit.point);
-    moveTarget.y = 1.65;
-    moveTarget.x = clamp(moveTarget.x, -7.1, 7.1);
-    moveTarget.z = clamp(moveTarget.z, -6.2, 6.2);
-    notify('Movendo para o ponto selecionado…');
-  }
+  if (floorHit && appState === 'NORMAL') startTeleport(floorHit.point);
 }
-window.addEventListener('keydown', event => keys[event.code] = true);
+
+window.addEventListener('keydown', event => {
+  keys[event.code] = true;
+  if (['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(event.code)) {
+    cancelTeleport();
+    if (appState === 'TOUR') stopTour();
+  }
+});
 window.addEventListener('keyup', event => keys[event.code] = false);
 renderer.domElement.addEventListener('click', event => {
   if (xrMode) return;
@@ -292,8 +321,8 @@ let touchState = null;
 renderer.domElement.addEventListener('touchstart', event => {
   if (xrMode) return;
   const t = event.changedTouches[0];
-  touchState = { id:t.identifier, x:t.clientX, y:t.clientY, sx:t.clientX, sy:t.clientY, distance:0 };
-}, { passive:true });
+  touchState = { id: t.identifier, x: t.clientX, y: t.clientY, sx: t.clientX, sy: t.clientY, distance: 0 };
+}, { passive: true });
 renderer.domElement.addEventListener('touchmove', event => {
   if (!touchState || xrMode) return;
   for (const t of event.changedTouches) if (t.identifier === touchState.id) {
@@ -305,41 +334,44 @@ renderer.domElement.addEventListener('touchmove', event => {
     touchState.x = t.clientX;
     touchState.y = t.clientY;
   }
-}, { passive:true });
+}, { passive: true });
 renderer.domElement.addEventListener('touchend', () => {
   if (touchState && touchState.distance < 14 && !xrMode) pick((touchState.sx / innerWidth) * 2 - 1, -(touchState.sy / innerHeight) * 2 + 1);
   touchState = null;
-}, { passive:true });
+}, { passive: true });
 
-const joystickEl = $('joystick');
+const joystickElement = $('joystick');
 const knob = $('knob');
 let joystickId = null;
 function updateJoystick(touch) {
-  if (!joystickEl || !knob) return;
-  const rect = joystickEl.getBoundingClientRect();
+  if (!joystickElement || !knob) return;
+  const rect = joystickElement.getBoundingClientRect();
   const limit = rect.width / 2 - 18;
   let dx = touch.clientX - rect.left - rect.width / 2;
   let dy = touch.clientY - rect.top - rect.height / 2;
   const length = Math.hypot(dx, dy);
   if (length > limit) { dx *= limit / length; dy *= limit / length; }
-  joystick.x = dx / limit;
-  joystick.y = dy / limit;
+  inputAxis.set(dx / limit, dy / limit);
   knob.style.transform = `translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;
+  cancelTeleport();
+  if (appState === 'TOUR') stopTour();
 }
-if (joystickEl) {
-  joystickEl.addEventListener('touchstart', event => { event.preventDefault(); joystickId = event.changedTouches[0].identifier; updateJoystick(event.changedTouches[0]); }, { passive:false });
-  joystickEl.addEventListener('touchmove', event => { event.preventDefault(); for (const t of event.changedTouches) if (t.identifier === joystickId) updateJoystick(t); }, { passive:false });
-  joystickEl.addEventListener('touchend', () => { joystickId = null; joystick.x = 0; joystick.y = 0; if (knob) knob.style.transform = 'translate(-50%,-50%)'; });
+if (joystickElement) {
+  joystickElement.addEventListener('touchstart', event => { event.preventDefault(); joystickId = event.changedTouches[0].identifier; updateJoystick(event.changedTouches[0]); }, { passive: false });
+  joystickElement.addEventListener('touchmove', event => { event.preventDefault(); for (const t of event.changedTouches) if (t.identifier === joystickId) updateJoystick(t); }, { passive: false });
+  const releaseJoystick = () => { joystickId = null; inputAxis.set(0, 0); if (knob) knob.style.transform = 'translate(-50%,-50%)'; };
+  joystickElement.addEventListener('touchend', releaseJoystick);
+  joystickElement.addEventListener('touchcancel', releaseJoystick);
 }
 
-const reticle = new THREE.Mesh(new THREE.RingGeometry(.08,.13,32).rotateX(-Math.PI/2), new THREE.MeshBasicMaterial({ color:'#e9c66b' }));
+const reticle = new THREE.Mesh(new THREE.RingGeometry(.08, .13, 32).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#e9c66b' }));
 reticle.matrixAutoUpdate = false;
 reticle.visible = false;
 scene.add(reticle);
 const arTools = $('arTools');
 const arInstruction = $('arInstruction');
 const arButtonIds = ['placeAR','centerAR','scaleDown','scaleUp','resetAR'];
-function setARControlsEnabled(value) { arButtonIds.forEach(id => { const element = $(id); if (element) element.disabled = !value; }); }
+function setARControlsEnabled(value) { arButtonIds.forEach(id => { const button = $(id); if (button) button.disabled = !value; }); }
 async function supportsXR(mode) { return Boolean(navigator.xr) && navigator.xr.isSessionSupported(mode).catch(() => false); }
 function endXR() {
   hitTestSource?.cancel();
@@ -349,33 +381,37 @@ function endXR() {
   xrMode = null;
   arPlaced = false;
   reticle.visible = false;
+  appState = 'NORMAL';
   scene.background = new THREE.Color('#101312');
   showroom.visible = true;
   showroom.position.set(0, 0, 0);
   showroom.rotation.set(0, 0, 0);
   showroom.scale.setScalar(1);
   document.body.classList.remove('ar');
-  if (arTools) arTools.classList.add('hidden');
+  arTools?.classList.add('hidden');
   notify('Modo normal: showroom pronto.');
 }
 async function enterAR() {
-  if (!await supportsXR('immersive-ar')) { notify('AR indisponível neste aparelho/navegador. Use Chrome Android com ARCore ou o modo normal.'); return; }
+  if (!await supportsXR('immersive-ar')) { notify('AR indisponível neste aparelho/navegador. Use Chrome Android com ARCore ou modo normal.'); return; }
   try {
-    const session = await navigator.xr.requestSession('immersive-ar', { requiredFeatures:['hit-test'], optionalFeatures:['local-floor'] });
-    xrMode = 'ar'; arPlaced = false; reticleSamples = [];
+    const session = await navigator.xr.requestSession('immersive-ar', { requiredFeatures: ['hit-test'], optionalFeatures: ['local-floor', 'dom-overlay'], domOverlay: { root: document.body } });
+    xrMode = 'ar';
+    appState = 'AR_ESCANEANDO';
+    arPlaced = false;
+    reticleSamples = [];
     scene.background = null;
     showroom.visible = false;
     document.body.classList.add('ar');
-    if (arTools) arTools.classList.remove('hidden');
+    arTools?.classList.remove('hidden');
     if (arInstruction) arInstruction.textContent = 'Mova o celular lentamente apontando para uma área livre do chão.';
     setARControlsEnabled(false);
     renderer.xr.setReferenceSpaceType('local-floor');
     await renderer.xr.setSession(session);
     const viewerSpace = await session.requestReferenceSpace('viewer');
     floorSpace = await session.requestReferenceSpace('local-floor');
-    hitTestSource = await session.requestHitTestSource({ space:viewerSpace });
+    hitTestSource = await session.requestHitTestSource({ space: viewerSpace });
     session.addEventListener('end', endXR);
-    notify('AR ativo: procurando uma superfície estável.');
+    notify('AR ativo: procurando superfície estável.');
   } catch (error) {
     console.error(error);
     notify(`Erro ao iniciar AR: ${error.message}`);
@@ -385,8 +421,9 @@ async function enterAR() {
 async function enterVR() {
   if (!await supportsXR('immersive-vr')) { notify('VR indisponível. Abra em um headset compatível.'); return; }
   try {
-    const session = await navigator.xr.requestSession('immersive-vr', { optionalFeatures:['local-floor','bounded-floor','hand-tracking'] });
+    const session = await navigator.xr.requestSession('immersive-vr', { optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking'] });
     xrMode = 'vr';
+    appState = 'VR';
     renderer.xr.setReferenceSpaceType('local-floor');
     await renderer.xr.setSession(session);
     session.addEventListener('end', endXR);
@@ -400,12 +437,13 @@ function placeAR() {
   showroom.scale.setScalar(.22);
   showroom.visible = true;
   arPlaced = true;
+  appState = 'AR_POSICIONADO';
   setARControlsEnabled(true);
   if (arInstruction) arInstruction.textContent = 'Maquete posicionada. Caminhe ao redor e ajuste a escala se necessário.';
   notify('AR: showroom posicionado.');
 }
 function updateAR(frame) {
-  if (!frame || !hitTestSource || !floorSpace) return;
+  if (!frame || !hitTestSource || !floorSpace || appState !== 'AR_ESCANEANDO') return;
   const result = frame.getHitTestResults(hitTestSource)[0];
   if (!result) { reticle.visible = false; reticleSamples = []; return; }
   const pose = result.getPose(floorSpace);
@@ -414,54 +452,17 @@ function updateAR(frame) {
   reticle.matrix.decompose(reticle.position, reticle.quaternion, reticle.scale);
   reticle.visible = true;
   reticleSamples.push(reticle.position.clone());
-  if (reticleSamples.length > 10) reticleSamples.shift();
+  if (reticleSamples.length > 12) reticleSamples.shift();
   const average = reticleSamples.reduce((sum, point) => sum.add(point), new THREE.Vector3()).multiplyScalar(1 / reticleSamples.length);
   const variation = reticleSamples.reduce((sum, point) => sum + point.distanceTo(average), 0) / reticleSamples.length;
-  const stable = reticleSamples.length >= 7 && variation < .06;
+  const stable = reticleSamples.length >= 8 && variation < .045;
   const placeButton = $('placeAR');
   if (placeButton) placeButton.disabled = !stable;
   if (stable && !arPlaced) {
-    if (arInstruction) arInstruction.textContent = 'Chão estável detectado. Toque em “Posicionar aqui” para confirmar.';
+    if (arInstruction) arInstruction.textContent = 'Chão estável detectado. Confirme em “Posicionar aqui”.';
     notify('AR: chão estável detectado.');
   }
 }
-
-on('placeAR', 'click', placeAR);
-on('centerAR', 'click', placeAR);
-on('resetAR', 'click', () => { showroom.visible = false; arPlaced = false; setARControlsEnabled(false); if (arInstruction) arInstruction.textContent = 'Mova o celular até detectar outro ponto estável.'; });
-on('scaleUp', 'click', () => { if (arPlaced) showroom.scale.multiplyScalar(1.15); });
-on('scaleDown', 'click', () => { if (arPlaced) showroom.scale.multiplyScalar(.87); });
-on('exitAR', 'click', () => renderer.xr.getSession()?.end());
-on('arBtn', 'click', enterAR);
-on('vrBtn', 'click', enterVR);
-on('normalBtn', 'click', () => renderer.xr.getSession() ? renderer.xr.getSession().end() : endXR());
-on('tourBtn', 'click', () => { tourActive = !tourActive; tourIndex = 0; $('tourBtn')?.classList.toggle('active', tourActive); notify(tourActive ? 'Tour guiado iniciado.' : 'Tour guiado encerrado.'); });
-on('wallMode', 'click', () => { currentSurface = 'wall'; $('wallMode')?.classList.add('active'); $('floorMode')?.classList.remove('active'); applyProduct(selectedProduct, 'wall'); });
-on('floorMode', 'click', () => { currentSurface = 'floor'; $('floorMode')?.classList.add('active'); $('wallMode')?.classList.remove('active'); applyProduct(selectedProduct, 'floor'); });
-on('applyWall', 'click', () => applyProduct(selectedProduct, 'wall'));
-on('applyFloor', 'click', () => applyProduct(selectedProduct, 'floor'));
-on('uploadTexture', 'click', () => $('textureFile')?.click());
-on('textureFile', 'change', event => {
-  const file = event.target.files?.[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    const target = currentSurface === 'wall' ? wallMaterial : floorMaterial;
-    if (target) { target.map = null; target.color.set('#ffffff'); }
-    applyTexture(reader.result, currentSurface);
-    notify(`Textura enviada aplicada em ${currentSurface === 'wall' ? 'parede' : 'piso'}.`);
-  };
-  reader.readAsDataURL(file);
-  event.target.value = '';
-});
-on('arProduct', 'click', () => notify('AR de produto será conectado quando você adicionar um arquivo GLB em uploads/models/.'));
-on('closeInspector', 'click', () => inspector?.classList.remove('open'));
-on('captureBtn', 'click', () => { const a = document.createElement('a'); a.download = `decor-colors-${Date.now()}.png`; a.href = renderer.domElement.toDataURL('image/png'); a.click(); });
-on('helpBtn', 'click', () => $('help')?.classList.add('open'));
-on('closeHelp', 'click', () => $('help')?.classList.remove('open'));
-on('startBtn', 'click', () => { $('welcome')?.classList.remove('open'); notify(isTouch ? 'Arraste para olhar · toque no piso para mover.' : 'WASD + mouse para explorar.'); });
-on('quickTourBtn', 'click', () => { $('welcome')?.classList.remove('open'); tourActive = true; $('tourBtn')?.classList.add('active'); notify('Tour guiado iniciado.'); });
-on('enterBtn', 'click', () => $('welcome')?.classList.add('open'));
 
 const tourPoints = [
   new THREE.Vector3(0, 1.65, 5.8),
@@ -470,37 +471,123 @@ const tourPoints = [
   new THREE.Vector3(4.4, 1.65, 1.5),
   new THREE.Vector3(0, 1.65, 5.8)
 ];
-const clock = new THREE.Clock();
-function updateNormalMovement(delta) {
-  if (xrMode || tourActive) return;
-  let forward = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0) - joystick.y;
-  let side = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0) + joystick.x;
-  const length = Math.hypot(forward, side);
-  if (length > 1) { forward /= length; side /= length; }
-  const speed = 3.1 * delta;
-  const sin = Math.sin(yaw), cos = Math.cos(yaw);
-  camera.position.x += (forward * -sin + side * cos) * speed;
-  camera.position.z += (forward * -cos + side * -sin) * speed;
-  if (moveTarget.lengthSq() > 0) {
-    const direction = moveTarget.clone().sub(camera.position);
-    direction.y = 0;
-    if (direction.length() < .09) moveTarget.set(0, 0, 0);
-    else camera.position.add(direction.normalize().multiplyScalar(Math.min(delta * 4, direction.length())));
-  }
-  camera.position.x = clamp(camera.position.x, -7.1, 7.1);
-  camera.position.z = clamp(camera.position.z, -6.2, 6.2);
-  camera.rotation.set(pitch, yaw, 0);
+function startTour() {
+  cancelTeleport();
+  velocity.set(0, 0, 0);
+  tourIndex = 0;
+  appState = 'TOUR';
+  setActive('tourBtn', true);
+  notify('Tour guiado iniciado. Use WASD, setas ou joystick para interromper.');
+}
+function stopTour() {
+  if (appState !== 'TOUR') return;
+  appState = 'NORMAL';
+  setActive('tourBtn', false);
+  notify('Tour guiado interrompido.');
 }
 function updateTour(delta) {
-  if (!tourActive || xrMode) return;
-  const point = tourPoints[tourIndex];
-  const direction = point.clone().sub(camera.position);
+  if (appState !== 'TOUR') return;
+  const target = tourPoints[tourIndex];
+  const direction = target.clone().sub(camera.position);
   direction.y = 0;
   if (direction.length() < .18) { tourIndex = (tourIndex + 1) % tourPoints.length; return; }
-  camera.position.add(direction.normalize().multiplyScalar(delta * 1.4));
+  camera.position.add(direction.normalize().multiplyScalar(delta * 1.45));
   yaw = Math.atan2(-direction.x, -direction.z);
   camera.rotation.set(-.05, yaw, 0);
 }
+function resolveCollision(position) {
+  const radius = .32;
+  for (const box of colliders) {
+    const insideX = position.x > box.minX - radius && position.x < box.maxX + radius;
+    const insideZ = position.z > box.minZ - radius && position.z < box.maxZ + radius;
+    if (!insideX || !insideZ) continue;
+    const left = Math.abs(position.x - (box.minX - radius));
+    const right = Math.abs((box.maxX + radius) - position.x);
+    const back = Math.abs(position.z - (box.minZ - radius));
+    const front = Math.abs((box.maxZ + radius) - position.z);
+    const minimum = Math.min(left, right, back, front);
+    if (minimum === left) position.x = box.minX - radius;
+    else if (minimum === right) position.x = box.maxX + radius;
+    else if (minimum === back) position.z = box.minZ - radius;
+    else position.z = box.maxZ + radius;
+    velocity.set(0, 0, 0);
+  }
+}
+function updateNormalMovement(delta) {
+  if (xrMode || appState === 'TOUR') return;
+  const forward = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0) - inputAxis.y;
+  const side = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0) + inputAxis.x;
+  const hasInput = Math.hypot(forward, side) > .05;
+  desiredVelocity.set(0, 0, 0);
+  if (hasInput) {
+    const length = Math.hypot(forward, side);
+    const normalizedForward = forward / Math.max(1, length);
+    const normalizedSide = side / Math.max(1, length);
+    const speed = 3.15;
+    const sin = Math.sin(yaw);
+    const cos = Math.cos(yaw);
+    desiredVelocity.set((normalizedForward * -sin + normalizedSide * cos) * speed, 0, (normalizedForward * -cos + normalizedSide * -sin) * speed);
+    cancelTeleport();
+    appState = 'NORMAL';
+  } else if (teleporting) {
+    const direction = teleportTarget.clone().sub(camera.position);
+    direction.y = 0;
+    if (direction.length() < .09) {
+      cancelTeleport();
+      appState = 'NORMAL';
+      notify('Chegou ao destino.');
+    } else {
+      desiredVelocity.copy(direction.normalize().multiplyScalar(Math.min(4.2, direction.length() * 3.5)));
+    }
+  }
+  const rate = hasInput || teleporting ? 20 : 42;
+  velocity.lerp(desiredVelocity, 1 - Math.exp(-rate * delta));
+  if (!hasInput && !teleporting && velocity.lengthSq() < .0004) velocity.set(0, 0, 0);
+  camera.position.addScaledVector(velocity, delta);
+  camera.position.x = clamp(camera.position.x, -7.5, 7.5);
+  camera.position.z = clamp(camera.position.z, -6.5, 6.5);
+  resolveCollision(camera.position);
+  camera.rotation.set(pitch, yaw, 0);
+}
+
+on('placeAR', 'click', placeAR);
+on('centerAR', 'click', placeAR);
+on('resetAR', 'click', () => { showroom.visible = false; arPlaced = false; appState = 'AR_ESCANEANDO'; setARControlsEnabled(false); if (arInstruction) arInstruction.textContent = 'Mova o celular até detectar outro ponto estável.'; });
+on('scaleUp', 'click', () => { if (arPlaced) showroom.scale.multiplyScalar(1.15); });
+on('scaleDown', 'click', () => { if (arPlaced) showroom.scale.multiplyScalar(.87); });
+on('exitAR', 'click', () => renderer.xr.getSession()?.end());
+on('arBtn', 'click', enterAR);
+on('vrBtn', 'click', enterVR);
+on('normalBtn', 'click', () => renderer.xr.getSession() ? renderer.xr.getSession().end() : endXR());
+on('tourBtn', 'click', () => appState === 'TOUR' ? stopTour() : startTour());
+on('wallMode', 'click', () => { currentSurface = 'wall'; applyProduct(selectedProduct, 'wall'); });
+on('floorMode', 'click', () => { currentSurface = 'floor'; applyProduct(selectedProduct, 'floor'); });
+on('applyWall', 'click', () => applyProduct(selectedProduct, 'wall'));
+on('applyFloor', 'click', () => applyProduct(selectedProduct, 'floor'));
+on('uploadTexture', 'click', () => $('textureFile')?.click());
+on('textureFile', 'change', event => {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const target = surfaceMaterial(currentSurface);
+    if (target) { target.map = null; target.color.set('#ffffff'); }
+    applyTexture(reader.result, currentSurface);
+    notify(`Textura enviada aplicada somente em ${currentSurface === 'wall' ? 'parede' : 'piso'}.`);
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
+});
+on('arProduct', 'click', () => notify('AR de produto será conectado quando um GLB for adicionado em uploads/models/.'));
+on('closeInspector', 'click', () => inspector?.classList.remove('open'));
+on('captureBtn', 'click', () => { const link = document.createElement('a'); link.download = `decor-colors-${Date.now()}.png`; link.href = renderer.domElement.toDataURL('image/png'); link.click(); });
+on('helpBtn', 'click', () => $('help')?.classList.add('open'));
+on('closeHelp', 'click', () => $('help')?.classList.remove('open'));
+on('startBtn', 'click', () => { $('welcome')?.classList.remove('open'); notify(isTouch ? 'Arraste para olhar · toque no piso para mover.' : 'WASD + mouse para explorar.'); });
+on('quickTourBtn', 'click', () => { $('welcome')?.classList.remove('open'); startTour(); });
+on('enterBtn', 'click', () => $('welcome')?.classList.add('open'));
+
+const clock = new THREE.Clock();
 function render(time, frame) {
   const delta = Math.min(clock.getDelta(), .05);
   if (xrMode === 'ar') updateAR(frame);
@@ -511,9 +598,9 @@ function render(time, frame) {
 async function loadCatalog() {
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 3500);
+    const timer = setTimeout(() => controller.abort(), 3500);
     const response = await fetch('catalogo.json', { cache: 'no-store', signal: controller.signal });
-    clearTimeout(timeout);
+    clearTimeout(timer);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
     if (!Array.isArray(data.products) || !data.products.length) throw new Error('Catálogo vazio');
@@ -529,7 +616,7 @@ async function init() {
     selectedProduct = catalog.products[0];
     buildShowroom();
     buildProductList();
-    setText(selectedName, selectedProduct.name);
+    if (selectedName) selectedName.textContent = selectedProduct.name;
     document.querySelector('.product-item')?.classList.add('active');
     applyTexture(catalog.referenceTextures?.mineral, 'wall');
     applyTexture(catalog.referenceTextures?.floor, 'floor');
